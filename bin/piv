@@ -1,0 +1,17 @@
+#! /usr/bin/env ruby
+
+require 'bundler/setup'
+
+Bundler.require :default
+
+GLOBAL_DIR = File.join(ENV.fetch('HOME'), '.piv')
+DEBUG_DIR = File.join(__dir__, '..', 'test', '.piv')
+
+Piv::Application.global_dir = if ARGV.first == 'debug'
+                                ARGV.shift
+                                DEBUG_DIR
+                              else
+                                GLOBAL_DIR
+                              end
+
+Piv::CLI.start(ARGV)
