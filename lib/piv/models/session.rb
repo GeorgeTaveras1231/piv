@@ -6,6 +6,13 @@ module Piv
       find_by(:current => true)
     end
 
+    def self.start(attributes)
+      self.first_or_create(attributes.slice(:token)).tap do |s|
+        s.update_attributes(attributes)
+        s.current = true
+      end
+    end
+
     after_save :make_only_current
 
     private
