@@ -10,18 +10,47 @@ RSpec::Matchers.define :exit_with_code do |expected|
       end
       expected == exit_code
     else
-      false
+      raise ArgumentError, "actual must be a code block for this matcher"
     end
   end
 end
 
-describe Piv::CLI do
+RSpec::Matchers.define :prompt do |*expected|
+  supports_block_expectations
+  match do |actual|
+    if actual.is_a? Proc
+      expect(Thor::LineEditor).to receive(:readline).with(*expected, anything)
+      actual.call
+    else
+      raise ArgumentError, "actual must be a code block for this matcher"
+    end
+  end
+end
+
+describe Piv::Runner do
+
   def allow_exit!
     @allow_exit = true
   end
 
   def allow_exit?
     @allow_exit
+  end
+
+  def prompter
+    Thor::LineEditor
+  end
+
+  def ask(*with)
+
+    case with.length
+    when 0
+      receive(:readline)
+    when 1
+      receive(:readline).with(*with, anything)
+    else
+      receive(:readline).with(*with)
+    end
   end
 
   let(:global_dir) { File.join(__dir__, 'fixtures', 'piv_test') }
@@ -51,11 +80,11 @@ describe Piv::CLI do
     silence_stream($stdout) do
       if allow_exit?
         begin
-          Piv::CLI.start(argv)
+          described_class.start(argv)
         rescue SystemExit
         end
       else
-        Piv::CLI.start(argv)
+        described_class.start(argv)
       end
     end
   end
@@ -67,7 +96,7 @@ describe Piv::CLI do
     describe "behavior" do
 
       before do
-        Piv::Application.for(:login).assure_globally_installed
+        Piv::Application.for(nil, :login).assure_globally_installed
         stub_request(:get, basic_auth_url).to_return(
           :status => 200,
           :body => {
@@ -75,15 +104,18 @@ describe Piv::CLI do
             :name => 'george'}.to_json)
       end
 
-      context 'when session is in progress and user wants to preserve session' do
+      context 'when session is in progress' do
         before do
-          Piv::Session.create(:token => '123', :current => true)
-          allow($stdin).to receive(:gets) { 'n' }
+          Piv::Session.start(:token => '123')
+
+          allow(prompter).to ask.and_return('n')
         end
 
         it "asks user if he wants to preserve session" do
           allow_exit!
-          expect { run_command }.to output(/start a new session\?.*\[yn\].*$/i).to_stdout
+
+          expect(prompter).to ask(a_string_matching(/start a new session\?\[yYnN\]/i))
+          run_command
         end
 
         it 'exits with a code of 0' do
@@ -94,20 +126,19 @@ describe Piv::CLI do
       context 'when there is no session in progress' do
         before do
           Piv::Session.destroy_all
-          allow($stdin).to receive(:gets).and_return('user', 'password')
+          allow(prompter).to ask.and_return('y')
+          allow(prompter).to ask(a_string_matching(/User:.*/)).and_return('user')
+          allow(prompter).to ask(a_string_matching(/Password:.*/), :echo => false).and_return('password')
         end
 
         it 'asks the user for credentials' do
           allow_exit!
-          expect { run_command }.to output(/User: .*Password: .*/).to_stdout
+          expect(prompter).to ask(a_string_matching(/User:.*/))
+          expect(prompter).to ask(a_string_matching(/Password:.*/), :echo => false)
           run_command
         end
 
         describe "<request>" do
-
-          before do
-            allow($stdin).to receive(:gets).and_return('user', 'password')
-          end
 
           let(:request) do
             a_request(:get, basic_auth_url)
@@ -125,8 +156,6 @@ describe Piv::CLI do
             stub_request(:get, basic_auth_url).to_return(
               :status => status,
               :body => body.to_json)
-
-            allow($stdin).to receive(:gets).and_return('user', 'password')
           end
 
           context "when response status is 200" do
@@ -146,6 +175,26 @@ describe Piv::CLI do
             it "prints a welcoming message" do
               allow_exit!
               expect { run_command }.to output(/You have been authenticated./).to_stdout
+            end
+
+            context "and a session with the received token already exists" do
+              before do
+                Piv::Session.create(:token => 'abc123')
+              end
+
+              it "finds that session and starts it" do
+                allow_exit!
+                run_command
+                expect(Piv::Session.where(:token => 'abc123').count).to eq 1
+              end
+            end
+
+            context "and a session with the received token does'nt exist" do
+              it "creates a new session" do
+                allow_exit!
+                run_command
+                expect(Piv::Session.find_by_token('abc123')).to_not be_nil
+              end
             end
           end
 
