@@ -5,6 +5,9 @@ class CreateSessionsTable < ActiveRecord::Migration
       t.boolean :current, :default => true
       t.string  :user
       t.string  :name
+
     end
+
+    add_index :sessions, :current
   end
 end
