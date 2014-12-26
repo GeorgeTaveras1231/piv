@@ -13,7 +13,7 @@ module Piv
       end
     end
 
-    after_save :make_only_current
+    before_save :make_only_current
 
     private
       def make_only_current

@@ -59,7 +59,7 @@ module Piv
             c.run(:up)
           end
         end
-      rescue FailedCommand
+      rescue FailedCommandError
         raise RollbackCommand, 'rollback exception should have been caught'
       end
 
