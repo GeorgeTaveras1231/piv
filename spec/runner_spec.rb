@@ -110,7 +110,7 @@ describe Piv::Runner do
       describe "--format" do
         let(:argv) { %W( whoami --format #{format_argument}) }
 
-        context "%u" do
+        describe "%u" do
           let(:format_argument) { "i am %u" }
 
           it "displays the user's username" do
@@ -119,12 +119,39 @@ describe Piv::Runner do
           end
         end
 
-        context "%n" do
+        describe "%n" do
           let(:format_argument) { "i am %n" }
 
           it "displays the user's name" do
             allow_exit!
             expect { run_command }.to output(a_string_including("i am George Taveras")).to_stdout
+          end
+        end
+
+        describe "%e" do
+          let(:format_argument) { "i am %e" }
+
+          it "displays the user's email" do
+            allow_exit!
+            expect { run_command }.to output(a_string_including("i am gtaveras@example.com")).to_stdout
+          end
+        end
+
+        describe "%i" do
+          let(:format_argument) { "i am %i" }
+
+          it "displays the user's initials" do
+            allow_exit!
+            expect { run_command }.to output(a_string_including("i am GT")).to_stdout
+          end
+        end
+
+        describe "%c()" do
+          let(:format_argument) { "i am %c(5)%i" }
+
+          it "displays the user's initials" do
+            allow_exit!
+            expect { run_command }.to output(a_string_including("i am \e[5mGT")).to_stdout
           end
         end
 

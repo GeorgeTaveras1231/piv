@@ -62,10 +62,15 @@ module Piv
                     :default => '%u',
                     :required => true,
                     :desc => <<-DESC.strip_heredoc
-    Format to use when printing current user information:
-      available options are:
-        %n => user's name
-        %u => user's email or username
+    Format to use when printing current user information.
+      Available meta-characters are:
+        %n => name
+        %u => username
+        %i => initials
+        %e => email
+
+        %c => shell colors eg: %c(31) for red
+
     DESC
 
     desc 'whoami', 'Print current session information'
