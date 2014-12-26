@@ -15,26 +15,14 @@ RSpec::Matchers.define :exit_with_code do |expected|
   end
 end
 
-RSpec::Matchers.define :prompt do |*expected|
-  supports_block_expectations
-  match do |actual|
-    if actual.is_a? Proc
-      expect(Thor::LineEditor).to receive(:readline).with(*expected, anything)
-      actual.call
-    else
-      raise ArgumentError, "actual must be a code block for this matcher"
-    end
-  end
-end
-
 describe Piv::Runner do
 
-  def allow_exit!
-    @allow_exit = true
-  end
+  MACROS = [:allow_exit, :dont_silence_stream]
 
-  def allow_exit?
-    @allow_exit
+  MACROS.each do |macro|
+    instance_var = "@_#{macro}"
+    define_method("#{macro}!") { instance_variable_set(instance_var, true) }
+    define_method("#{macro}?") { instance_variable_get(instance_var) }
   end
 
   def prompter
