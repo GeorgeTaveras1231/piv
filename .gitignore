@@ -24,3 +24,12 @@ mkmf.log
 # ignore swap files
 *.swp
 *.swo
+bin/rspec
+bin/bundler
+bin/coderay
+bin/thor
+bin/htmldiff
+bin/ldiff
+bin/pry
+bin/rake
+bin/safe_yaml
