@@ -3,7 +3,7 @@ module Piv
     module Whoami
       FORMAT_MAP = {
         '%n' => '%{name}',
-        '%u' => '%{user}'
+        '%u' => '%{username}'
       }
 
       def gsub_regexp

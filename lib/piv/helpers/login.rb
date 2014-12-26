@@ -3,7 +3,7 @@ module Piv
     module Login
       def user_wants_to_preserve_session?
         not yes? <<-MSG.strip_heredoc
-#{current_session.user} has already established a session, do you want to start a new session?#{set_color('[yYnN]', nil, :bold)}
+#{current_session.username} has already established a session, do you want to start a new session?#{set_color('[yYnN]', nil, :bold)}
         MSG
       end
 

@@ -3,7 +3,9 @@ class CreateSessionsTable < ActiveRecord::Migration
     create_table :sessions do |t|
       t.string  :token
       t.boolean :current, :default => true
-      t.string  :user
+      t.string  :username
+      t.string  :email
+      t.string  :initials
       t.string  :name
 
     end

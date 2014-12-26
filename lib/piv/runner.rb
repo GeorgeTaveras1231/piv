@@ -14,7 +14,7 @@ module Piv
       Application.for(self, :logout) do
         if session_in_progress?
           confirm_logout unless options[:force]
-          say "Terminated #{current_session.user}'s session", :green
+          say "Terminated #{current_session.username}'s session", :green
           current_session.destroy
           exit 0
         else
@@ -26,7 +26,7 @@ module Piv
 
     desc 'login', 'Log into pivotaltracker.com'
     def login
-      Application.for(self, :login) do |a|
+      Application.for(self, :login) do
         if session_in_progress? and user_wants_to_preserve_session?
           exit(0)
         end
@@ -37,9 +37,17 @@ module Piv
 
         case response.status
         when 200
-          token, name = response.body['api_token'], response.body['name']
+          body = response.body
 
-          Session.start(:token => token, :user => user, :name => name)
+          token, name     = body['api_token'], body['name']
+          email, username = body['email'],     body['username']
+          initials        = body['initials']
+
+          Session.start(:token => token,
+            :username => username,
+            :name => name,
+            :email => email,
+            :initials => initials)
 
           say "You have been authenticated.", :green
           exit(0)
@@ -60,7 +68,7 @@ module Piv
         %u => user's email or username
     DESC
 
-    desc 'whoami', 'Print current user'
+    desc 'whoami', 'Print current session information'
     def whoami
       Application.for(self, :whoami) do
         if session_in_progress?

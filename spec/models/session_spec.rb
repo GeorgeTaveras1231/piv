@@ -50,13 +50,13 @@ describe Piv::Session do
       end
 
       it "updates the other attributes" do
-        described_class.start(:token => '4', :name => "george", :user => "gtaveras")
+        described_class.start(:token => '4', :name => "george", :username => "gtaveras")
         found_session = described_class.find_by(:token => 4)
         expect(found_session.name).to eq "george"
-        expect(found_session.user).to eq "gtaveras"
+        expect(found_session.username).to eq "gtaveras"
       end
 
-      it "makes it the current" do
+      xit "makes it the current" do
       end
     end
   end

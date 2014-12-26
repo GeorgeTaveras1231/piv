@@ -96,13 +96,15 @@ describe Piv::Runner do
     context "when there is a session in progress" do
       before do
         Piv::Session.start(:token => 'abc123',
-          :user => 'gtaveras@example.com',
-          :name => 'George Taveras')
+          :email => 'gtaveras@example.com',
+          :name => 'George Taveras',
+          :username => 'gtaveras',
+          :initials => 'GT')
       end
 
-      it "displays the user's user credential" do
+      it "displays the username credential" do
         allow_exit!
-        expect { run_command }.to output(a_string_including("gtaveras@example.com")).to_stdout
+        expect { run_command }.to output(a_string_including("gtaveras")).to_stdout
       end
 
       describe "--format" do
@@ -111,9 +113,9 @@ describe Piv::Runner do
         context "%u" do
           let(:format_argument) { "i am %u" }
 
-          it "displays the user's user credential" do
+          it "displays the user's username" do
             allow_exit!
-            expect { run_command }.to output(a_string_including("i am gtaveras@example.com")).to_stdout
+            expect { run_command }.to output(a_string_including("i am gtaveras")).to_stdout
           end
         end
 
@@ -278,7 +280,10 @@ describe Piv::Runner do
             let(:body) do
               {
                 'api_token' => 'abc123',
-                'name' => 'George'
+                'name' => 'George',
+                'email' => 'gtaveras@example.com',
+                'initials' => 'GT',
+                'username' => 'gtaveras'
               }
             end
 
@@ -303,11 +308,15 @@ describe Piv::Runner do
               end
             end
 
-            context "and a session with the received token does'nt exist" do
-              it "creates a new session" do
+            context "and a session with the received token doesn't exist" do
+              it "creates a new session with the attributes from the request" do
                 allow_exit!
                 run_command
-                expect(Piv::Session.find_by_token('abc123')).to_not be_nil
+                session = Piv::Session.find_by_token('abc123')
+                expect(session.name).to eq('George')
+                expect(session.email).to eq('gtaveras@example.com')
+                expect(session.initials).to eq('GT')
+                expect(session.username).to eq('gtaveras')
               end
             end
           end
