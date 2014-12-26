@@ -1,13 +1,12 @@
 module Piv
+  class ConfigurationError < StandardError; end
+
   module Helpers
     module Application
       extend ActiveSupport::Concern
 
-      # TODO: Move to config file
-      API_URL = "https://www.pivotaltracker.com/services/v5/"
-
       module ClassMethods
-        attr_accessor :global_dir
+        attr_accessor :global_dir, :connection
       end
 
       def session_in_progress?
@@ -19,7 +18,9 @@ module Piv
       end
 
       def client
-        @client ||= Client.new(API_URL)
+        @client ||= Client.new(self.class.connection) do |c|
+          c.options.timeout = 4
+        end
       end
 
       def global_installer
@@ -27,6 +28,8 @@ module Piv
       end
 
       def assure_globally_installed
+        raise ConfigurationError, "make sure connection and global directory are established" unless self.class.global_dir && self.class.connection
+
         global_installer.run :up unless global_installer.done?
       end
     end
