@@ -7,11 +7,22 @@ Bundler.require :default
 GLOBAL_DIR = File.join(ENV.fetch('HOME'), '.piv')
 DEBUG_DIR = File.join(__dir__, '..', 'test', '.piv')
 
-Piv::Application.global_dir = if ARGV.first == 'debug'
-                                ARGV.shift
-                                DEBUG_DIR
-                              else
-                                GLOBAL_DIR
-                              end
+directory = if ARGV.first == 'debug'
+              ARGV.shift
+              DEBUG_DIR
+            else
+              GLOBAL_DIR
+            end
 
-Piv::CLI.start(ARGV)
+API_URL = "https://www.pivotaltracker.com/services/v5/"
+
+connection = Faraday.new(API_URL) do |c|
+  c.request :json
+  c.response :json
+  c.adapter Faraday.default_adapter
+end
+
+Piv::Application.global_dir = directory
+Piv::Application.connection = connection
+
+Piv::Runner.start(ARGV)
