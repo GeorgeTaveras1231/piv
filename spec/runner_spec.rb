@@ -79,15 +79,12 @@ describe Piv::Runner do
   describe 'logout' do
     let(:argv) { %w( logout ) }
 
-    before do
-      Piv::Application.for(nil).assure_globally_installed
-    end
 
     context "when there is a session in progress" do
       before do
         Piv::Session.start(:token => 'abc123')
 
-        allow(prompter).to ask(a_string_matching(/are you sure.*\?/i)).and_return('n')
+        allow(prompter).to ask(a_string_matching(/are you sure.*\?/i)).and_return('y')
       end
 
       it "asks the user if to confirm" do
@@ -98,6 +95,12 @@ describe Piv::Runner do
 
       it "exits with a code of 0" do
         expect { run_command }.to exit_with_code(0)
+      end
+
+      it "deletes the current session" do
+        allow_exit!
+        run_command
+        expect(Piv::Session.current).to be_nil
       end
 
       describe "--force" do
@@ -134,7 +137,6 @@ describe Piv::Runner do
     describe "behavior" do
 
       before do
-        Piv::Application.for(nil, :login).assure_globally_installed
         stub_request(:get, basic_auth_url).to_return(
           :status => 200,
           :body => {
