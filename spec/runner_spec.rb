@@ -42,7 +42,6 @@ describe Piv::Runner do
   end
 
   def ask(*with)
-
     case with.length
     when 0
       receive(:readline)
@@ -85,6 +84,57 @@ describe Piv::Runner do
         end
       else
         described_class.start(argv)
+      end
+    end
+  end
+
+  describe 'logout' do
+    let(:argv) { %w( logout ) }
+
+    before do
+      Piv::Application.for(nil).assure_globally_installed
+    end
+
+    context "when there is a session in progress" do
+      before do
+        Piv::Session.start(:token => 'abc123')
+
+        allow(prompter).to ask(a_string_matching(/are you sure.*\?/i)).and_return('n')
+      end
+
+      it "asks the user if to confirm" do
+        allow_exit!
+        expect(prompter).to ask(a_string_matching(/are you sure.*\?/i))
+        run_command
+      end
+
+      it "exits with a code of 0" do
+        expect { run_command }.to exit_with_code(0)
+      end
+
+      describe "--force" do
+        let(:argv) { %w( logout --force ) }
+
+        it "does not ask for confirmation" do
+          allow_exit!
+          expect(prompter).not_to ask(a_string_matching(/are you sure.*\?/i))
+          run_command
+        end
+      end
+    end
+
+    context "when there is no session in progress" do
+      before do
+        Piv::Session.destroy_all
+      end
+
+      it "says there are no sessions" do
+        allow_exit!
+        expect { run_command }.to output(/no session/).to_stderr
+      end
+
+      it "exits with a status of 1" do
+        expect { run_command }.to exit_with_code(1)
       end
     end
   end
