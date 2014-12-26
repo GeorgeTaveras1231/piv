@@ -52,6 +52,7 @@ module Piv
 
     option :format, :type => :string,
                     :default => '%u',
+                    :required => true,
                     :desc => <<-DESC.strip_heredoc
     Format to use when printing current user information:
       available options are:

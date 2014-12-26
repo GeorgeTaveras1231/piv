@@ -40,6 +40,10 @@ describe Piv::Runner do
     end
   end
 
+  def assert_option(option)
+    output(/No value provided for option '--#{option}'/).to_stderr
+  end
+
   let(:global_dir) { File.join(__dir__, 'fixtures', 'piv_test') }
   let(:api_url) { "https://www.pivotaltracker.com/services/v5/" }
 
@@ -64,7 +68,7 @@ describe Piv::Runner do
 
 
   let(:run_command) do
-    silence_stream($stdout) do
+    command_proc = -> do
       if allow_exit?
         begin
           described_class.start(argv)
@@ -72,6 +76,76 @@ describe Piv::Runner do
         end
       else
         described_class.start(argv)
+      end
+    end
+
+    if dont_silence_stream?
+      command_proc.call
+    else
+      silence_stream($stdout, &command_proc)
+    end
+  end
+
+  before do
+    Piv::Application.for(nil).assure_globally_installed
+  end
+
+  describe 'whoami' do
+    let(:argv) { %w( whoami ) }
+
+    context "when there is a session in progress" do
+      before do
+        Piv::Session.start(:token => 'abc123',
+          :user => 'gtaveras@example.com',
+          :name => 'George Taveras')
+      end
+
+      it "displays the user's user credential" do
+        allow_exit!
+        expect { run_command }.to output(a_string_including("gtaveras@example.com")).to_stdout
+      end
+
+      describe "--format" do
+        let(:argv) { %W( whoami --format #{format_argument}) }
+
+        context "%u" do
+          let(:format_argument) { "i am %u" }
+
+          it "displays the user's user credential" do
+            allow_exit!
+            expect { run_command }.to output(a_string_including("i am gtaveras@example.com")).to_stdout
+          end
+        end
+
+        context "%n" do
+          let(:format_argument) { "i am %n" }
+
+          it "displays the user's name" do
+            allow_exit!
+            expect { run_command }.to output(a_string_including("i am George Taveras")).to_stdout
+          end
+        end
+
+        context "when no format argument is given" do
+          let(:argv) { %W( whoami --format ) }
+
+          it "notifies the user that this is a required output" do
+            allow_exit!
+            expect { run_command }.to assert_option(:format)
+          end
+        end
+
+      end
+    end
+
+    context "when there is no session in progress" do
+      before do
+        Piv::Session.destroy_all
+      end
+
+      it "prints a friendly message" do
+        allow_exit!
+        expect { run_command }.to output(/no session/).to_stderr
       end
     end
   end
