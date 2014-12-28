@@ -23,8 +23,12 @@ require "piv/runner"
 require "piv/client"
 require "piv/micro_command"
 
+
+require "piv/models/concerns/currentable"
+
 require "piv/models/session"
 require "piv/models/project"
+
 
 module Piv
   # there is nothing here yet
