@@ -2,13 +2,6 @@ module Piv
   module Helpers
     module Projects
 
-      def metachar_to_attribute_map
-        {
-          '%n' => :name,
-          '%I' => :original_id
-        }
-      end
-
       def pull_projects
         response = client.projects(:token => current_session.token)
         event_handler = EventHandler.new('pull projects')

@@ -1,20 +1,17 @@
 module Piv
   class Application
-
-    HELPER_MAP = {
-      :login     => Helpers::Login,
-      :logout    => Helpers::Logout,
-      :whoami    => Helpers::Whoami,
-      :projects  => Helpers::Projects,
-      :formatter => Helpers::Formatter
-    }
+    include Helpers::Application
 
     def self.for(runner, *helpers, &block)
-      mods = helpers.map do |helper|
-        HELPER_MAP.fetch(helper.to_sym) do
-          raise ArgumentError, "#{helper} is not a registered module"
-        end
+      nested_helpers = helpers.last.is_a?(Hash) ? helpers.pop : {}
+
+      nested_mods = nested_helpers.flat_map do |namespace, helper_names|
+        namespace_mod = get_helper_modules([namespace]).first
+
+        get_helper_modules([helper_names].flatten, namespace_mod) + [namespace_mod]
       end
+
+      mods = get_helper_modules(helpers) + nested_mods
 
       application = self.new(runner, *helpers)
       application.extend(*mods) if mods.any?
@@ -35,8 +32,6 @@ module Piv
       @helpers = helpers
     end
 
-    include Helpers::Application
-
     def method_missing(*args, &block)
       if @runner
         @runner.send(*args, &block)
@@ -44,6 +39,19 @@ module Piv
         super
       end
     end
+
+    private
+
+    def self.get_helper_modules(names, namespace=Helpers)
+      names.map do |name|
+        begin
+          namespace.const_get(name.to_s.capitalize)
+        rescue NameError
+          raise ArgumentError, "#{name} is not a registered module in #{namespace}"
+        end
+      end
+    end
+
 
   end
 end
