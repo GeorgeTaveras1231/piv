@@ -25,12 +25,12 @@ module Piv
         formatted_string + parse_color_metachar_arguments("clear")
       end
 
-      def print_formatted(attributes)
-        say parse_format(options[:format], attributes)
+      def print_formatted(attributes, format = options[:format])
+        say parse_format(format, attributes)
       end
 
-      def print_formatted_model(model)
-        print_formatted(model.attributes)
+      def print_formatted_model(model, format = options[:format])
+        print_formatted(model.attributes, format)
       end
 
     end

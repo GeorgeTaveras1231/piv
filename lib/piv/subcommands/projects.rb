@@ -15,19 +15,24 @@ module Piv
           %c => shell colors with Thor color helpers eg: "%c(bold green on_magenta) I am colorful "
 
       DESC
+
+      option :cformat, :type => :string,
+                       :default => '%I: %n %c(green)*',
+                       :required => true,
+                       :desc => "Same as `format` but only applies to whichever project a session has `checkout` into"
+
       desc 'list', "List projects"
       def list
         Application.for(self, :formatter, :projects => [:list]) do
           requires_active_session!
-
           if session_projects.any?
-            session_projects.each(&method(:print_formatted_model))
+            list_session_projects
             exit 0
           else
 
             pull_projects do |event_handler|
               event_handler.on :success do
-                session_projects.each(&method(:print_formatted_model))
+                list_session_projects
                 exit 0
               end
 

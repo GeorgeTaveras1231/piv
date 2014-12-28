@@ -328,6 +328,20 @@ describe Piv::Runner do
                   end
                 end
               end
+
+              describe "--cformat FORMAT" do
+                before do
+                  Piv::Session.current.projects.create(:name => 'first proj')
+                  Piv::Session.current.projects.create(:name => 'second proj', :current => true)
+                end
+
+                let(:argv) { %w( projects --format "not_current:\ %n" --cformat "yes_current:\ %n" ) }
+
+                it "allows special formatting for current project" do
+                  allow_exit!
+                  expect { run_command }.to output(a_string_matching(/not_current: first proj(:?\n|.)*yes_current: second proj/)).to_stdout
+                end
+              end
             end
 
             context "when request status is NOT 200" do
