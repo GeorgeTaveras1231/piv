@@ -11,6 +11,7 @@ require "piv/helpers/whoami"
 require "piv/helpers/formatter"
 require "piv/helpers/application"
 require "piv/helpers/projects"
+require "piv/helpers/projects/list"
 
 require "piv/subcommands/projects"
 

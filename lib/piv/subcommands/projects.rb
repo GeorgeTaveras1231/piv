@@ -4,7 +4,7 @@ module Piv
       default_command :list
 
       option :format, :type => :string,
-                      :default => '%n',
+                      :default => '%I: %n',
                       :required => true,
                       :desc => <<-DESC.strip_heredoc
       Format to use when printing projects
@@ -17,7 +17,7 @@ module Piv
       DESC
       desc 'list', "List projects"
       def list
-        Application.for(self, :projects, :formatter) do
+        Application.for(self, :formatter, :projects => [:list]) do
           requires_active_session!
 
           if current_session.projects.any?
@@ -59,11 +59,24 @@ module Piv
         end
       end
 
-      desc 'checkout (PROJECT)', 'Checkout into a project'
-      def checkout(project)
+      desc 'checkout (PROJECT_ID)', 'Checkout into a project'
+      def checkout(project_id)
         Application.for(self) do
           requires_active_session!
 
+          if project = Piv::Project.find_by(:original_id => project_id)
+            project.current = true
+            project.save
+            say <<-MSG.strip_heredoc
+            Switched to project:
+              #{project.name}
+            MSG
+
+            exit 0
+          else
+            warn "Unknown project: #{project_id}"
+            exit 1
+          end
         end
       end
 
