@@ -120,6 +120,7 @@ describe Piv::Runner do
       end
 
       it "exits with a code of 1" do
+        dont_silence_stream!
         expect { run_command }.to exit_with_code(1)
       end
     end
@@ -171,19 +172,49 @@ describe Piv::Runner do
         let(:argv) { %W( projects checkout #{checkout_arguments}) }
 
         let(:checkout_arguments) do
-          "first"
+          'default'
         end
 
         it_behaves_like "a command that requires an active session"
 
         context "when there is a session in progress" do
           before do
-            Piv::Session.start(:token => 'abc123')
+            current_session = Piv::Session.start(:token => 'abc123')
+            current_session.projects.create(:name => 'my proj', :original_id => 1123)
           end
 
+          context "when the specified project exists" do
+            let(:checkout_arguments) { '1123' }
 
-          it "makes the chosen project the current" do
+            it "makes the chosen project the current" do
+              allow_exit!
+              run_command
+              expect(Piv::Project.find_by(:current => true).name).to eq 'my proj'
+            end
+
+            it "exits with a status of 0" do
+              expect { run_command }.to exit_with_code(0)
+            end
+
+            it "outputs some info about the projects" do
+              allow_exit!
+              expect { run_command }.to output(/Switched to project:.*\n.*my proj/i).to_stdout
+            end
           end
+
+          context "when the specified project does not exist" do
+            let(:checkout_arguments) { '0000' }
+
+            it "exits with a status of 1" do
+              expect { run_command }.to exit_with_code(1)
+            end
+
+            it "outputs a failure message" do
+              allow_exit!
+              expect { run_command }.to output(/Unknown project: 0000/i).to_stderr
+            end
+          end
+
         end
       end
 
@@ -243,17 +274,19 @@ describe Piv::Runner do
               let(:body) do
                 [
                   {
-                   "name" => "My Api"
+                   "name" => "My Api",
+                   "id" => "1"
                   },
                   {
-                   "name" => "My UI Project"
+                   "name" => "My UI Project",
+                   "id" => "2"
                   }
                 ]
               end
 
               it "displays the user's projects" do
                 allow_exit!
-                expect { run_command }.to output(a_string_matching(/My Api(:?\n|.)*My UI Project/)).to_stdout
+                expect { run_command }.to output(a_string_matching(/1: My Api(:?\n|.)*2: My UI Project/)).to_stdout
               end
 
               it "exits with a code of 0" do
@@ -283,6 +316,15 @@ describe Piv::Runner do
                   it "displays the project names" do
                     allow_exit!
                     expect { run_command }.to output(a_string_matching(/my project:My Api(:?\n|.)*my project:My UI Project/)).to_stdout
+                  end
+                end
+
+                describe "%I" do
+                  let(:format_argument) { "my project id:%I" }
+
+                  it "displays the project ids" do
+                    allow_exit!
+                    expect { run_command }.to output(a_string_matching(/my project id:1(:?\n|.)*my project id:2/)).to_stdout
                   end
                 end
               end
