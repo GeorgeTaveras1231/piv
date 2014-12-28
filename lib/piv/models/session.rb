@@ -1,5 +1,7 @@
 module Piv
   class Session < ActiveRecord::Base
+    has_many :projects
+
     validates_presence_of :token
 
     def self.current

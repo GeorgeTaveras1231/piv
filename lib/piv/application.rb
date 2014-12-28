@@ -2,9 +2,11 @@ module Piv
   class Application
 
     HELPER_MAP = {
-      :login  => Helpers::Login,
-      :whoami => Helpers::Whoami,
-      :logout => Helpers::Logout
+      :login     => Helpers::Login,
+      :logout    => Helpers::Logout,
+      :whoami    => Helpers::Whoami,
+      :projects  => Helpers::Projects,
+      :formatter => Helpers::Formatter
     }
 
     def self.for(runner, *helpers, &block)
@@ -14,7 +16,7 @@ module Piv
         end
       end
 
-      application = new(runner, *helpers)
+      application = self.new(runner, *helpers)
       application.extend(*mods) if mods.any?
 
       block ||= Proc.new {}

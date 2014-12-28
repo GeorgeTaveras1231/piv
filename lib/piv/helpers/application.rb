@@ -32,6 +32,16 @@ module Piv
 
         global_installer.run :up unless global_installer.done?
       end
+
+      def requires_active_session!
+        unless session_in_progress?
+          default_message = "There is no session in progress. Run #{set_color("`piv login`", :bold)}"
+          message = block_given? ? yield(default_message) : default_message
+          warn message
+          exit 1
+        end
+      end
+
     end
   end
 end
