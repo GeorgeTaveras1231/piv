@@ -20,14 +20,14 @@ module Piv
         Application.for(self, :formatter, :projects => [:list]) do
           requires_active_session!
 
-          if current_session.projects.any?
-            current_projects.each(&method(:print_formatted_model))
+          if session_projects.any?
+            session_projects.each(&method(:print_formatted_model))
             exit 0
           else
 
             pull_projects do |event_handler|
               event_handler.on :success do
-                current_projects.each(&method(:print_formatted_model))
+                session_projects.each(&method(:print_formatted_model))
                 exit 0
               end
 

@@ -27,7 +27,7 @@ module Piv
         end
       end
 
-      def current_projects
+      def session_projects
         current_session.projects
       end
 
