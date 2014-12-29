@@ -3,8 +3,11 @@ module Piv
     class Projects < Thor
       default_command :list
 
+      CURRENT_PROJECT_FORMAT = '%I: %n %c(green)*'
+      PROJECT_FORMAT = '%I: %n'
+
       option :format, :type => :string,
-                      :default => '%I: %n',
+                      :default => PROJECT_FORMAT,
                       :required => true,
                       :desc => <<-DESC.strip_heredoc
       Format to use when printing projects
@@ -17,13 +20,13 @@ module Piv
       DESC
 
       option :cformat, :type => :string,
-                       :default => '%I: %n %c(green)*',
+                       :default => CURRENT_PROJECT_FORMAT,
                        :required => true,
                        :desc => "Same as `format` but only applies to whichever project a session has `checkout` into"
 
       desc 'list', "List projects"
       def list
-        Application.for(self, :formatter, :projects => [:list]) do
+        Application.for(self, :formatter, :projects => [:list, :formatter]) do
           requires_active_session!
           if session_projects.any?
             list_session_projects
@@ -72,6 +75,7 @@ module Piv
           if project = Piv::Project.find_by(:original_id => project_id)
             project.current = true
             project.save
+
             say <<-MSG.strip_heredoc
             Switched to project:
               #{project.name}
@@ -82,6 +86,30 @@ module Piv
             warn "Unknown project: #{project_id}"
             exit 1
           end
+        end
+      end
+
+      option :format, :type => :string,
+                      :default => CURRENT_PROJECT_FORMAT,
+                      :required => true,
+                      :desc => <<-DESC.strip_heredoc
+      Format to use when printing projects
+        Available meta-characters are:
+          %n => name
+          %I => project_id
+
+          %c => shell colors with Thor color helpers eg: "%c(bold green on_magenta) I am colorful "
+      DESC
+
+      desc 'which', 'Print the current project'
+      def which
+        Application.for(self, :formatter, :projects => :formatter) do
+          requires_active_session!
+          requires_current_project!
+
+          print_formatted_model(current_project)
+
+          exit 0
         end
       end
 

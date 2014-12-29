@@ -31,6 +31,21 @@ module Piv
         current_session.projects
       end
 
+      def current_project
+        session_projects.where(:current => true).first
+      end
+
+      def checked_out_into_project?
+        !!current_project
+      end
+
+      def requires_current_project!
+        default_message = "You have not checked out into a project. Run #{set_color("`piv projects checkout (PROJECT_ID)`")}"
+        message = block_given? ? yield(default_message) : default_message
+
+        assert_requirement :checked_out_into_project?, message
+      end
+
     end
   end
 end

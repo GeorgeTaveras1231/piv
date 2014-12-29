@@ -34,9 +34,14 @@ module Piv
       end
 
       def requires_active_session!
-        unless session_in_progress?
-          default_message = "There is no session in progress. Run #{set_color("`piv login`", :bold)}"
-          message = block_given? ? yield(default_message) : default_message
+        default_message = "There is no session in progress. Run #{set_color("`piv login`", :bold)}"
+        message = block_given? ? yield(default_message) : default_message
+
+        assert_requirement :session_in_progress?, message
+      end
+
+      def assert_requirement(test_method, message)
+        unless send(test_method)
           warn message
           exit 1
         end

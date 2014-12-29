@@ -8,7 +8,7 @@ module Piv
                    :default => false,
                    :type => :boolean,
                    :desc => <<-DESC.strip_heredoc
-    Do not confirm.
+                    Do not confirm.
                    DESC
 
     desc 'logout', 'Terminate current session'

@@ -125,8 +125,47 @@ describe Piv::Runner do
       end
     end
 
-    describe 'projects (list|checkout)' do
+    describe 'projects (pull|list|checkout|which)' do
       let(:argv) { %w( projects ) }
+
+      describe "which [--format FORMAT]" do
+        let(:argv) { %w( projects which ) }
+
+        it_behaves_like "a command that requires an active session"
+        context "when there is an active session" do
+
+          before do
+            Piv::Session.start(:token => "abc123")
+          end
+
+          context "when there is a current project" do
+            before do
+              Piv::Session.current.projects.create(:name => "my proj", :original_id => '123', :current => true)
+            end
+
+            it "outputs the current project" do
+              allow_exit!
+              expect { run_command }.to output(/123: my proj */).to_stdout
+            end
+
+            it "exits with a status of 0" do
+              dont_silence_stream!
+              expect { run_command }.to exit_with_code(0)
+            end
+          end
+
+          context "when there is no current project" do
+            it "outputs a message notifying the user that there is no current project" do
+              allow_exit!
+              expect { run_command }.to output(a_string_matching(/not checked out.*Run `piv projects checkout \(PROJECT_ID\)`.*/i)).to_stderr
+            end
+
+            it "exits with a status of 1" do
+              expect { run_command }.to exit_with_code(1)
+            end
+          end
+        end
+      end
 
       describe "pull" do
         let(:argv) { %w( projects pull ) }
