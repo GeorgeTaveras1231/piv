@@ -1,22 +1,40 @@
 module Piv
   module Helpers
     module Projects
+      PERSISTED_PROJECT_ATTRIBUTES = %w( id name )
 
       def pull_projects
-        response = client.projects(:token => current_session.token)
+        response = client.projects
         event_handler = EventHandler.new('pull projects')
 
         yield event_handler
 
         case response.status
         when 200
+          projects = response.body
+
+          Project.transaction do
+            ids = current_session.projects.pluck(:id)
+            projects.each do |project|
+
+              id = project['id'].to_s
+              desired_attributes = project.slice(*PERSISTED_PROJECT_ATTRIBUTES)
+
+              if ids.include? id
+                current_session.projects.update(id, desired_attributes)
+              else
+                current_session.projects.create(desired_attributes)
+              end
+            end
+
+          end
 
           # TODO: attempt to update projects rather than destroy and create
           current_session.projects.destroy_all
 
           project_objects = response.body.map do |project|
             Project.new(:name => project['name'],
-                        :original_id => project['id'])
+                        :id => project['id'])
           end
 
           current_session.projects << project_objects
@@ -32,7 +50,7 @@ module Piv
       end
 
       def current_project
-        session_projects.where(:current => true).first
+        @current_project ||= session_projects.where(:current => true).first
       end
 
       def checked_out_into_project?
@@ -40,7 +58,7 @@ module Piv
       end
 
       def requires_current_project!
-        default_message = "You have not checked out into a project. Run #{set_color("`piv projects checkout (PROJECT_ID)`")}"
+        default_message = "You have not checked out into a project. Run #{set_color("`piv projects checkout (PROJECT_ID)`", :bold)}"
         message = block_given? ? yield(default_message) : default_message
 
         assert_requirement :checked_out_into_project?, message

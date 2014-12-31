@@ -13,8 +13,10 @@ require "piv/helpers/application"
 require "piv/helpers/projects"
 require "piv/helpers/projects/list"
 require "piv/helpers/projects/formatter"
+require "piv/helpers/stories"
 
 require "piv/subcommands/projects"
+require "piv/subcommands/stories"
 
 require "piv/event_handler"
 require "piv/color_parser"
@@ -29,6 +31,7 @@ require "piv/models/concerns/currentable"
 
 require "piv/models/session"
 require "piv/models/project"
+require "piv/models/story"
 
 
 module Piv

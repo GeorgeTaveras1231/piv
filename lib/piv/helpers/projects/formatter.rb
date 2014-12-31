@@ -5,7 +5,7 @@ module Piv
         def metachar_to_attribute_map
           {
             '%n' => :name,
-            '%I' => :original_id
+            '%I' => :id
           }
         end
       end

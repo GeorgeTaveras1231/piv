@@ -39,13 +39,35 @@ module Piv
       @connection.get(path('/me'), &@config)
     end
 
-    def projects_request(params)
-      params.assert_valid_keys :token, :account_ids
-      @connection.get(path('/projects')) do |req|
-        req.headers['X-Trackertoken'] = params[:token]
-        req.params[:account_ids] = params[:account_ids] if params[:account_ids]
-        @config.call(req)
+    def projects_request(params = {})
+      params.assert_valid_keys :account_ids
+      @connection.get(path('/projects'), params, &@config)
+    end
+
+    def stories_request(params)
+      params.assert_valid_keys :project_id,
+        :with_label,
+        :with_state,
+        :after_story_id,
+        :before_story_id,
+        :accepted_before,
+        :accepted_after,
+        :created_before,
+        :created_after,
+        :updated_before,
+        :updated_after,
+        :deadline_before,
+        :limit,
+        :offset,
+        :fitler
+
+      project_id = params.delete(:project_id) do
+        raise ArgumentError, ':project_id is a required parameter'
       end
+
+      stories_path = "projects/#{project_id}/stories"
+
+      @connection.get(path(stories_path), params, &@config)
     end
   end
 end

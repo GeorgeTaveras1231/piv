@@ -1,6 +1,11 @@
 module Piv
 
+  ActiveRecord::Base.logger = Logger.new(STDOUT) if ENV['AR_LOG']
+
   class Runner < ::Thor
+    desc 'stories [COMMAND]', 'Manage stories'
+    subcommand :stories, Subcommands::Stories
+
     desc 'projects [COMMAND]', 'Manage projects'
     subcommand :projects, Subcommands::Projects
 
@@ -41,9 +46,10 @@ module Piv
 
           token, name     = body['api_token'], body['name']
           email, username = body['email'],     body['username']
-          initials        = body['initials']
+          initials, id    = body['initials'],  body['id']
 
-          Session.start(:token => token,
+          Session.start(:id => id.to_s,
+            :token => token,
             :username => username,
             :name => name,
             :email => email,

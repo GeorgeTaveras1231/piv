@@ -14,11 +14,12 @@ module Piv
       end
 
       def current_session
-        Session.current
+        @current_session ||= Session.current
       end
 
       def client
         @client ||= Client.new(self.class.connection) do |c|
+          c.headers['X-Trackertoken'] = current_session.token if session_in_progress?
           c.options.timeout = 4
         end
       end

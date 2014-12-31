@@ -3,8 +3,8 @@ module Piv
     class Projects < Thor
       default_command :list
 
-      CURRENT_PROJECT_FORMAT = '%I: %n %c(green)*'
-      PROJECT_FORMAT = '%I: %n'
+      CURRENT_PROJECT_FORMAT = '* %c(green)%n'
+      PROJECT_FORMAT = '  %I: %n'
 
       option :format, :type => :string,
                       :default => PROJECT_FORMAT,
@@ -72,7 +72,7 @@ module Piv
         Application.for(self) do
           requires_active_session!
 
-          if project = Piv::Project.find_by(:original_id => project_id)
+          if project = Piv::Project.find_by(:id => project_id)
             project.current = true
             project.save
 
