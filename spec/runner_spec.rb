@@ -56,6 +56,14 @@ describe Piv::Runner do
       end
     end
 
+    let(:current_session) do
+      Piv::Session.current
+    end
+
+    let(:current_project) do
+      current_session.projects.where(:current => true).first
+    end
+
     before do
       Piv::Application.global_dir = global_dir
       Piv::Application.connection = connection
@@ -125,6 +133,123 @@ describe Piv::Runner do
       end
     end
 
+    describe 'stories (pull|list)' do
+      let(:argv) { %w( stories ) }
+
+      describe "pull" do
+        let(:argv) { %w( stories pull ) }
+
+        let(:stories_url) do
+          api_url + "projects/#{project_id}/stories"
+        end
+
+        xcontext "when there is NO session in progress"
+        context "when there is a session in progress" do
+          let(:project_id) { '123' }
+
+          before do
+            Piv::Session.start(:token => 'abc123', :id => '123123')
+          end
+
+          xcontext "when there is no current project"
+          context "when there is a current project" do
+            before do
+              Piv::Session.current.projects.create(:name => 'my proj', :id => project_id, :current => true)
+              stub_request(:get, stories_url).with(:headers => {'X-Trackertoken' => 'abc123'}).to_return(:body => {}.to_json)
+            end
+
+            let(:request) do
+              a_request(:get, stories_url).with(:headers => {'X-Trackertoken' => 'abc123'})
+            end
+
+            it "makes a request to get a list of the stories" do
+              allow_exit!
+              run_command
+              expect(request).to have_been_made
+            end
+
+            describe "response" do
+              before do
+                stub_request(:get, stories_url).with(:headers => {'X-Trackertoken' => 'abc123'}).to_return(:status => status, :body => body.to_json)
+              end
+
+              context "when status is 200" do
+                let(:status) { 200 }
+
+                let(:body) do
+                  [
+                    {
+                      :name => 'do something!',
+                      :id => 123,
+                      :estimate => 2,
+                      :current_state => 'started',
+                      :unknown_attr => 1
+                    },
+                    {
+                      :name => 'undo nothing!',
+                      :id => 345,
+                      :estimate => 1,
+                      :current_state => 'started',
+                      :unknown_attr => 1
+                    }
+                  ]
+                end
+
+                it "exits with a status of 0 "do
+                  expect { run_command }.to exit_with_code(0)
+                end
+
+                context "when stories have been cached" do
+                  before do
+                    body.each do |s|
+                      s[:estimate] = 0
+                      current_project.stories.create(s.except(:unknown_attr))
+                    end
+                  end
+
+                  it "updates the stories" do
+                    allow_exit!
+                    expect(current_project.stories.pluck(:estimate)).to be_all { |e| e == 0 }
+                    run_command
+                    expect(current_project.stories.pluck(:estimate)).to contain_exactly(2, 1)
+                  end
+                end
+
+                context "when stories have not been cached" do
+                  it "caches the stories" do
+                    allow_exit!
+                    expect(current_project.stories).to be_empty
+                    run_command
+                    expect(current_project.stories.pluck(:name)).to contain_exactly('do something!', 'undo nothing!')
+                  end
+                end
+              end
+
+              context "when status is not 200" do
+                it_behaves_like "a command that fails with an API error message"
+              end
+            end
+          end
+        end
+      end
+
+      describe "list" do
+        xcontext "when there is a session in progress" do
+          context "when there is no current project"
+          context "when there is a current project" do
+            before do
+              session =  Piv::Session.start(:token => 'abc123', :id => '123123')
+              session.projects.create(:name => 'a proj', :id => '123', :current => true)
+            end
+
+
+          end
+        end
+
+        context "when tehre is NO session in progress"
+      end
+    end
+
     describe 'projects (pull|list|checkout|which)' do
       let(:argv) { %w( projects ) }
 
@@ -135,17 +260,17 @@ describe Piv::Runner do
         context "when there is an active session" do
 
           before do
-            Piv::Session.start(:token => "abc123")
+            Piv::Session.start(:token => "abc123", :id => '123123')
           end
 
           context "when there is a current project" do
             before do
-              Piv::Session.current.projects.create(:name => "my proj", :original_id => '123', :current => true)
+              Piv::Session.current.projects.create(:name => "my proj", :id => '123', :current => true)
             end
 
             it "outputs the current project" do
               allow_exit!
-              expect { run_command }.to output(/123: my proj */).to_stdout
+              expect { run_command }.to output(a_string_matching(/\*.*my proj/)).to_stdout
             end
 
             it "exits with a status of 0" do
@@ -174,7 +299,7 @@ describe Piv::Runner do
 
         context "when there is an active session" do
           before do
-            Piv::Session.start(:token => 'abc123')
+            Piv::Session.start(:token => 'abc123', :id => '123123')
             stub_request(:get, api_url + 'projects')
               .with(:headers => {'X-Trackertoken' => 'abc123'})
               .to_return(:status => status, :body => body.to_json)
@@ -186,19 +311,43 @@ describe Piv::Runner do
             let(:body) do
               [
                 {
+                 "id" => 123,
                  "name" => "My Api"
                 },
                 {
+                 "id" => 345,
                  "name" => "My UI Project"
                 }
               ]
             end
 
-            it "caches the projects" do
-              allow_exit!
-              run_command
-              expect(Piv::Session.current.projects.pluck(:name)).to include("My Api", "My UI Project")
+            context 'when projects already exist' do
+              before do
+                [123, 345].each do |id|
+                  current_session.projects.create(:id => id.to_s, :name =>'a proj')
+                end
+              end
+
+              it "updates the projects" do
+                expect(current_session.projects.pluck(:id, :name)).to contain_exactly(
+                  ['123', 'a proj'], ['345', 'a proj'])
+                allow_exit!
+                run_command
+                expect(current_session.projects.pluck(:id, :name)).to contain_exactly(
+                  ['123', 'My Api'], ['345', 'My UI Project'])
+              end
             end
+
+            context 'when projects are new' do
+              it "caches the projects" do
+                expect(current_session.projects).to be_blank
+                allow_exit!
+                run_command
+                expect(current_session.projects.pluck(:id, :name)).to contain_exactly(
+                  ['123', 'My Api'], ['345', 'My UI Project'])
+              end
+            end
+
           end
 
           context "when response status is NOT 200" do
@@ -218,8 +367,8 @@ describe Piv::Runner do
 
         context "when there is a session in progress" do
           before do
-            current_session = Piv::Session.start(:token => 'abc123')
-            current_session.projects.create(:name => 'my proj', :original_id => 1123)
+            current_session = Piv::Session.start(:token => 'abc123', :id => '123123')
+            current_session.projects.create(:name => 'my proj', :id => 1123)
           end
 
           context "when the specified project exists" do
@@ -262,7 +411,7 @@ describe Piv::Runner do
 
         context "when there is a session in progress" do
           before do
-            Piv::Session.start(:token => 'abc123')
+            Piv::Session.start(:token => 'abc123', :id => '123123')
           end
 
           let(:request) do
@@ -400,7 +549,8 @@ describe Piv::Runner do
 
       context "when there is a session in progress" do
         before do
-          Piv::Session.start(:token => 'abc123',
+          Piv::Session.start(:id => '123123',
+            :token => 'abc123',
             :email => 'gtaveras@example.com',
             :name => 'George Taveras',
             :username => 'gtaveras',
@@ -482,7 +632,7 @@ describe Piv::Runner do
 
       context "when there is a session in progress" do
         before do
-          Piv::Session.start(:token => 'abc123')
+          Piv::Session.start(:token => 'abc123', :id => '123123')
 
           allow(prompter).to ask(a_string_matching(/are you sure.*\?/i)).and_return('y')
         end
@@ -531,7 +681,7 @@ describe Piv::Runner do
 
         context 'when session is in progress' do
           before do
-            Piv::Session.start(:token => '123')
+            Piv::Session.start(:id => '123123', :token => '123')
 
             allow(prompter).to ask.and_return('n')
           end
@@ -588,6 +738,7 @@ describe Piv::Runner do
 
               let(:body) do
                 {
+                  'id' => 123,
                   'api_token' => 'abc123',
                   'name' => 'George',
                   'email' => 'gtaveras@example.com',
@@ -607,10 +758,11 @@ describe Piv::Runner do
 
               context "and a session with the received token already exists" do
                 before do
-                  Piv::Session.create(:token => 'abc123')
+                  Piv::Session.create(:id => '123', :token => 'abc123')
                 end
 
                 it "finds that session and starts it" do
+                  dont_silence_stream!
                   allow_exit!
                   run_command
                   expect(Piv::Session.where(:token => 'abc123').count).to eq 1
@@ -621,7 +773,7 @@ describe Piv::Runner do
                 it "creates a new session with the attributes from the request" do
                   allow_exit!
                   run_command
-                  session = Piv::Session.find_by_token('abc123')
+                  session = Piv::Session.find('123')
                   expect(session.name).to eq('George')
                   expect(session.email).to eq('gtaveras@example.com')
                   expect(session.initials).to eq('GT')

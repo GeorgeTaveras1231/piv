@@ -25,11 +25,11 @@ describe Piv::Session do
 
   describe 'private#make_only_current' do
     before do
-      @other_sessions = %w( 1 2 3 ).map do |token|
-        described_class.create(:token => token, :current => true)
+      @other_sessions = %w( 1 2 3 ).map do |id_or_token|
+        described_class.create(:token => id_or_token, :current => true, :id => id_or_token)
       end
 
-      @last_session = described_class.create(:token => '4', :current => true)
+      @last_session = described_class.create(:token => '4', :current => true, :id => '4')
     end
 
     it "makes every other session's current attribute false" do
@@ -41,16 +41,16 @@ describe Piv::Session do
   describe "::start" do
     context "when session already exists" do
       before do
-        described_class.create(:token => '4')
+        described_class.create(:token => '4', :id => '4')
       end
 
       it "does not create a new session row" do
-        same_session = described_class.start(:token => '4')
+        same_session = described_class.start(:token => '4', :id => '4')
         expect(described_class.all).to contain_exactly(same_session)
       end
 
       it "updates the other attributes" do
-        described_class.start(:token => '4', :name => "george", :username => "gtaveras")
+        described_class.start(:token => '4', :name => "george", :username => "gtaveras", :id => '4')
         found_session = described_class.find_by(:token => 4)
         expect(found_session.name).to eq "george"
         expect(found_session.username).to eq "gtaveras"
