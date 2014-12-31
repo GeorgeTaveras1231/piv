@@ -4,6 +4,7 @@ module Piv
       desc 'pull', 'Pull stories from API.'
       def pull
         Application.for(self, :projects, :stories) do
+          requires_active_session!
           requires_current_project!
 
           pull_stories do |event_handler|

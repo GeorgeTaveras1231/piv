@@ -143,7 +143,10 @@ describe Piv::Runner do
           api_url + "projects/#{project_id}/stories"
         end
 
-        xcontext "when there is NO session in progress"
+        context "when there is NO session in progress" do
+          it_behaves_like "a command that requires an active session"
+        end
+
         context "when there is a session in progress" do
           let(:project_id) { '123' }
 
