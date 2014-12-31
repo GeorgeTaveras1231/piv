@@ -1,6 +1,7 @@
 class CreateSessionsTable < ActiveRecord::Migration
   def change
-    create_table :sessions do |t|
+    create_table :sessions, :id => false do |t|
+      t.string  :id
       t.string  :token
       t.boolean :current, :default => true
       t.string  :username
