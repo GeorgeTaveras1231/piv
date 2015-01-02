@@ -1,6 +1,7 @@
 if defined? JRUBY_VERSION
-  require 'activerecord-jdbc-adapter'
-  require 'jdbc/sqlite3'
+  require 'activerecord-jdbcsqlite3-adapter'
+else
+  require 'sqlite3'
 end
 
 require 'thor'

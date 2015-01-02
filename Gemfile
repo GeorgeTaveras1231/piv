@@ -4,8 +4,11 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'sqlite3', :platform => :ruby
+gem 'childprocess'
 
-gem 'activerecord-jdbc-adapter', :platform => :jruby
+platform :jruby do
+  gem 'activerecord-jdbcsqlite3-adapter'
+end
 
 group :test do
   gem 'rspec'

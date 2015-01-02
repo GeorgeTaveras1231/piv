@@ -87,7 +87,7 @@ describe Piv::Runner do
           it "asks user if he wants to preserve session" do
             allow_exit!
 
-            expect(prompter).to ask(a_string_matching(/start a new session\?\[yYnN\]/i))
+            expect(prompter).to ask(a_string_matching(/start a new session\?.*\[yYnN\]/s))
             run_command
           end
 
