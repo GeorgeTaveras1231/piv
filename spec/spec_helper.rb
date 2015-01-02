@@ -9,5 +9,10 @@ Dir.glob(File.join(__dir__, 'support', '**', '*.rb')) do |file|
   require file
 end
 
-WebMock.disable_net_connect!
+RSpec.configure do |c|
+  c.after(:all) do
+    WebMock.allow_net_connect!
+  end
+end
+
 CodeClimate::TestReporter.start

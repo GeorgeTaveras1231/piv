@@ -27,6 +27,7 @@ module Piv
       end
 
       included do
+        WebMock.disable_net_connect!
 
         let(:global_dir) { File.join(__dir__, 'fixtures', 'piv_test') }
         let(:api_url) { "https://www.pivotaltracker.com/services/v5/" }
