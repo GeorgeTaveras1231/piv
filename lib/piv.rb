@@ -1,5 +1,9 @@
+if defined? JRUBY_VERSION
+  require 'activerecord-jdbc-adapter'
+  require 'jdbc/sqlite3'
+end
+
 require 'thor'
-require 'jdbc/sqlite3' if defined?(JRUBY_VERSION)
 require 'active_record'
 require 'pry'
 require 'faraday'
