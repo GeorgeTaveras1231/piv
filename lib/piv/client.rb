@@ -7,44 +7,33 @@ module Piv
       @config = config || Proc.new {}
     end
 
-    def method_missing(meth, *args)
-      desired_method = "#{meth}_request"
-      if self.private_methods.include? desired_method.to_sym
-        begin
-          send(desired_method, *args)
-        rescue Faraday::TimeoutError, Faraday::ClientError => e
-          msg = case e
-                when Faraday::TimeoutError
-                  "the request timed out"
-                when Faraday::ClientError
-                  "the connection failed"
-                end
+    def iterations(params)
+      params.assert_valid_keys :project_id,
+        :offset,
+        :label,
+        :limit,
+        :scope
 
-          raise NetworkError, msg
-        end
-      else
-        super
+      project_id = params.delete(:project_id) do
+        raise ArgumentError, ':project_id is a required key'
       end
+
+      iterations_path = "projects/#{project_id}/iterations"
+      dispatch(:get, iterations_path, params)
     end
 
-    private
-
-    def path(name)
-      @connection.path_prefix + name
-    end
-
-    def login_request(credentials)
+    def login(credentials)
       credentials.assert_valid_keys :user, :password
       @connection.basic_auth(credentials[:user], credentials[:password])
-      @connection.get(path('/me'), &@config)
+      dispatch(:get, '/me')
     end
 
-    def projects_request(params = {})
+    def projects(params = {})
       params.assert_valid_keys :account_ids
-      @connection.get(path('/projects'), params, &@config)
+      dispatch(:get, '/projects', params)
     end
 
-    def stories_request(params)
+    def stories(params)
       params.assert_valid_keys :project_id,
         :with_label,
         :with_state,
@@ -62,12 +51,42 @@ module Piv
         :fitler
 
       project_id = params.delete(:project_id) do
-        raise ArgumentError, ':project_id is a required parameter'
+        raise ArgumentError, ':project_id is a required key'
       end
 
       stories_path = "projects/#{project_id}/stories"
 
-      @connection.get(path(stories_path), params, &@config)
+      dispatch(:get, stories_path, params)
+    end
+
+    private
+
+    def dispatch(req_method, path_name, *args, &block)
+      unless %w( get post patch put ).include?(req_method.to_s)
+        raise ArgumentError, "#{req_method} is not a request method"
+      end
+
+      @connection.send(req_method, path(path_name), *args) do |req|
+        @config.call(req)
+        block.call(req) if block_given?
+      end
+    rescue Exception => e
+      msg = case e
+            when Faraday::TimeoutError
+              "the request timed out"
+            when Faraday::ClientError
+              "the connection failed"
+            end
+
+      if msg
+        raise NetwordError, msg
+      else
+        raise e
+      end
+    end
+
+    def path(name)
+      File.join(@connection.path_prefix, name)
     end
   end
 end

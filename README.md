@@ -1,6 +1,10 @@
 # Piv
+[![Code Climate](https://codeclimate.com/github/GeorgeTaveras1231/piv/badges/gpa.svg)](https://codeclimate.com/github/GeorgeTaveras1231/piv)
 
-TODO: Write a gem description
+DOCUMENTATION PENDING
+
+TODO:
++ Write a gem description
 
 ## Installation
 

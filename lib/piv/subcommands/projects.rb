@@ -3,30 +3,20 @@ module Piv
     class Projects < Thor
       default_command :list
 
-      CURRENT_PROJECT_FORMAT = '* %c(green)%n'
-      PROJECT_FORMAT = '  %I: %n'
+      CURRENT_PROJECT_FORMAT = '* %c(green)%a(name)'
+      PROJECT_FORMAT = '  %a(id): %a(name)'
 
       option :format, :type => :string,
                       :default => PROJECT_FORMAT,
-                      :required => true,
-                      :desc => <<-DESC.strip_heredoc
-      Format to use when printing projects
-        Available meta-characters are:
-          %n => name
-          %I => project_id
-
-          %c => shell colors with Thor color helpers eg: "%c(bold green on_magenta) I am colorful "
-
-      DESC
+                      :required => true
 
       option :cformat, :type => :string,
                        :default => CURRENT_PROJECT_FORMAT,
-                       :required => true,
-                       :desc => "Same as `format` but only applies to whichever project a session has `checkout` into"
+                       :required => true
 
       desc 'list', "List projects"
       def list
-        Application.for(self, :formatter, :projects => [:list, :formatter]) do
+        Application.for(self, :formatter, :projects => [:list]) do
           requires_active_session!
           if session_projects.any?
             list_session_projects
@@ -91,19 +81,11 @@ module Piv
 
       option :format, :type => :string,
                       :default => CURRENT_PROJECT_FORMAT,
-                      :required => true,
-                      :desc => <<-DESC.strip_heredoc
-      Format to use when printing projects
-        Available meta-characters are:
-          %n => name
-          %I => project_id
-
-          %c => shell colors with Thor color helpers eg: "%c(bold green on_magenta) I am colorful "
-      DESC
+                      :required => true
 
       desc 'which', 'Print the current project'
       def which
-        Application.for(self, :formatter, :projects => :formatter) do
+        Application.for(self, :formatter, :projects) do
           requires_active_session!
           requires_current_project!
 

@@ -14,6 +14,56 @@ RSpec::Matchers.define :exit_with_code do |expected|
   end
 end
 
+shared_examples_for "a command that fails with an API error message" do
+  let(:status) { 400 }
+  let(:body) do
+    {
+      "error" => "msg"
+    }
+  end
+
+  it "prints the api errors" do
+    allow_exit!
+    expect { run_command }.to output(/msg/).to_stderr
+  end
+
+  it "exits with a code of 1" do
+    dont_silence_stream!
+    expect { run_command }.to exit_with_code(1)
+  end
+end
+
+
+shared_examples_for "a command that requires a current project" do
+  before do
+    Piv::Session.current.projects.update_all(:current => false)
+  end
+
+  it "outputs a message notifying the user that there is no current project" do
+    allow_exit!
+    expect { run_command }.to output(a_string_matching(/not checked out.*Run `piv projects checkout \(PROJECT_ID\)`.*/i)).to_stderr
+  end
+
+  it "exits with a status of 1" do
+    expect { run_command }.to exit_with_code(1)
+  end
+end
+
+shared_examples_for "a command that requires an active session" do
+  before do
+    Piv::Session.destroy_all
+  end
+
+  it "exits with a status of 1" do
+    expect { run_command }.to exit_with_code(1)
+  end
+
+  it "warns the user to login" do
+    allow_exit!
+    expect { run_command }.to output(/no session.*run `piv login`/i).to_stderr
+  end
+end
+
 describe Piv::Runner do
 
   describe "piv [COMMAND]" do
@@ -98,71 +148,143 @@ describe Piv::Runner do
       Piv::Application.for(nil).assure_globally_installed
     end
 
-
-    shared_examples_for "a command that requires an active session" do
-      before do
-        Piv::Session.destroy_all
-      end
-
-      it "exits with a status of 1" do
-        expect { run_command }.to exit_with_code(1)
-      end
-
-      it "warns the user to login" do
-        allow_exit!
-        expect { run_command }.to output(/no session.*run `piv login`/i).to_stderr
-      end
-    end
-
-    shared_examples_for "a command that fails with an API error message" do
-      let(:status) { 400 }
-      let(:body) do
-        {
-          "error" => "msg"
-        }
-      end
-
-      it "prints the api errors" do
-        allow_exit!
-        expect { run_command }.to output(/msg/).to_stderr
-      end
-
-      it "exits with a code of 1" do
-        dont_silence_stream!
-        expect { run_command }.to exit_with_code(1)
-      end
-    end
-
-    describe 'stories (pull|list)' do
+    describe 'stories (pull|list|checkout)' do
       let(:argv) { %w( stories ) }
 
+      describe "checkout" do
+        let(:argv) do
+          %W( stories checkout #{checkout_argument} )
+        end
+
+        let(:checkout_argument) { '890' }
+
+        context "when story exists"
+        context "when story DOESNT exists"
+
+        before do
+          Piv::Session.start(:id => '123', :token => 'abc123')
+          Piv::Session.current.projects.create(:id => '345', :name => 'my proj', :current => true)
+          current_project.stories.create(:id => '890', :name => 'a story')
+        end
+
+        it "sets the given  story as the current story" do
+          allow_exit!
+          run_command
+          expect(Piv::Story.where(:current => true).pluck(:id, :name)).to contain_exactly(['890', 'a story'])
+        end
+      end
+
+      describe "list" do
+        it_behaves_like "a command that requires an active session"
+        let(:argv) { %w( stories list ) }
+
+        # Need to find a better way to test `more` piping
+        # This is basically a unit test
+
+        context "when there is a session in progress" do
+          it_behaves_like "a command that requires a current project"
+
+          before do
+            Piv::Session.start(:token => 'abc123', :id => '123123')
+          end
+
+          context "and there is a current project" do
+            before do
+              current_session.projects.create(:name => 'my proj',
+                :id => '123123', :current => true)
+            end
+
+            context "and there are are stories" do
+              before do
+                current_project.stories << stories
+              end
+
+              let(:states) do
+                 %w( accepted delivered finished started rejected
+                 planned unstarted unscheduled )
+              end
+
+              let(:story_types) do
+                %w( feature bug chore release )
+              end
+
+              let(:stories) do
+                (1..30).map do |i|
+                  Piv::Story.new(:id => i.to_s,
+                    :name => "story##{i}",
+                    :current_state => states.sample,
+                    :estimate => i % 5,
+                    :story_type => story_types.sample)
+                end
+              end
+
+              let(:pattern) do
+                /(:?.*story#\d+.*)*/
+              end
+
+              let(:capture) do
+                double(:capture, :called => nil)
+              end
+
+              let(:shell_mod_stub) do
+                mod = Module.new
+                mod.module_exec(capture) do |_cap|
+                  define_method :more do |*args|
+                    _cap.called(*args)
+                  end
+                end
+                mod
+              end
+
+              it "outputs a list of the stories" do
+                stub_const('Piv::Helpers::Shell', shell_mod_stub)
+                dont_silence_stream!
+                allow_exit!
+                expect(capture).to receive(:called).with(a_string_matching(pattern))
+                run_command
+              end
+            end
+
+            context "and there are no stories"
+          end
+        end
+
+      end
+
       describe "pull" do
+        it_behaves_like "a command that requires an active session"
+
         let(:argv) { %w( stories pull ) }
 
         let(:stories_url) do
-          api_url + "projects/#{project_id}/stories"
-        end
-
-        context "when there is NO session in progress" do
-          it_behaves_like "a command that requires an active session"
+          api_url + "projects/#{project_id}/iterations"
         end
 
         context "when there is a session in progress" do
+          it_behaves_like "a command that requires a current project"
+
           let(:project_id) { '123' }
 
           before do
             Piv::Session.start(:token => 'abc123', :id => '123123')
           end
 
-          xcontext "when there is no current project"
           context "when there is a current project" do
             before do
-              Piv::Session.current.projects.create(:name => 'my proj', :id => project_id, :current => true)
-              stub_request(:get, stories_url).with(:headers => {'X-Trackertoken' => 'abc123'}).to_return(:body => {}.to_json)
+              Piv::Session.current.projects.create(
+                :name => 'my proj', :id => project_id, :current => true)
+
+              stub_request(:get, stories_url).with(
+                :query => { :scope => :current_backlog },
+                :headers => {'X-Trackertoken' => 'abc123'})
+                  .to_return(:body => {}.to_json)
             end
 
             let(:request) do
-              a_request(:get, stories_url).with(:headers => {'X-Trackertoken' => 'abc123'})
+              a_request(:get, stories_url).with(
+                :query =>
+                  { :scope => :current_backlog},
+                :headers => {'X-Trackertoken' => 'abc123'})
             end
 
             it "makes a request to get a list of the stories" do
@@ -172,8 +294,14 @@ describe Piv::Runner do
             end
 
             describe "response" do
+              it_behaves_like "a command that fails with an API error message"
+
               before do
-                stub_request(:get, stories_url).with(:headers => {'X-Trackertoken' => 'abc123'}).to_return(:status => status, :body => body.to_json)
+                stub_request(:get, stories_url).with(
+                  :query => { :scope => :current_backlog },
+                  :headers => {'X-Trackertoken' => 'abc123'})
+                  .to_return(:status => status, :body => body.to_json)
+                dont_silence_stream!
               end
 
               context "when status is 200" do
@@ -182,18 +310,22 @@ describe Piv::Runner do
                 let(:body) do
                   [
                     {
-                      :name => 'do something!',
-                      :id => 123,
-                      :estimate => 2,
-                      :current_state => 'started',
-                      :unknown_attr => 1
-                    },
-                    {
-                      :name => 'undo nothing!',
-                      :id => 345,
-                      :estimate => 1,
-                      :current_state => 'started',
-                      :unknown_attr => 1
+                      :stories => [
+                        {
+                          :name => 'do something!',
+                          :id => 123,
+                          :estimate => 2,
+                          :current_state => 'started',
+                          :unknown_attr => 1
+                        },
+                        {
+                          :name => 'undo nothing!',
+                          :id => 345,
+                          :estimate => 1,
+                          :current_state => 'started',
+                          :unknown_attr => 1
+                        }
+                      ]
                     }
                   ]
                 end
@@ -204,9 +336,11 @@ describe Piv::Runner do
 
                 context "when stories have been cached" do
                   before do
-                    body.each do |s|
-                      s[:estimate] = 0
-                      current_project.stories.create(s.except(:unknown_attr))
+                    body.each do |iteration|
+                      iteration[:stories].each do |s|
+                        s[:estimate] = 0
+                        current_project.stories.create(s.except(:unknown_attr))
+                      end
                     end
                   end
 
@@ -227,80 +361,21 @@ describe Piv::Runner do
                   end
                 end
               end
-
-              context "when status is not 200" do
-                it_behaves_like "a command that fails with an API error message"
-              end
             end
           end
         end
-      end
-
-      describe "list" do
-        xcontext "when there is a session in progress" do
-          context "when there is no current project"
-          context "when there is a current project" do
-            before do
-              session =  Piv::Session.start(:token => 'abc123', :id => '123123')
-              session.projects.create(:name => 'a proj', :id => '123', :current => true)
-            end
-
-
-          end
-        end
-
-        context "when tehre is NO session in progress"
       end
     end
 
     describe 'projects (pull|list|checkout|which)' do
       let(:argv) { %w( projects ) }
 
-      describe "which [--format FORMAT]" do
-        let(:argv) { %w( projects which ) }
-
-        it_behaves_like "a command that requires an active session"
-        context "when there is an active session" do
-
-          before do
-            Piv::Session.start(:token => "abc123", :id => '123123')
-          end
-
-          context "when there is a current project" do
-            before do
-              Piv::Session.current.projects.create(:name => "my proj", :id => '123', :current => true)
-            end
-
-            it "outputs the current project" do
-              allow_exit!
-              expect { run_command }.to output(a_string_matching(/\*.*my proj/)).to_stdout
-            end
-
-            it "exits with a status of 0" do
-              dont_silence_stream!
-              expect { run_command }.to exit_with_code(0)
-            end
-          end
-
-          context "when there is no current project" do
-            it "outputs a message notifying the user that there is no current project" do
-              allow_exit!
-              expect { run_command }.to output(a_string_matching(/not checked out.*Run `piv projects checkout \(PROJECT_ID\)`.*/i)).to_stderr
-            end
-
-            it "exits with a status of 1" do
-              expect { run_command }.to exit_with_code(1)
-            end
-          end
-        end
-      end
-
       describe "pull" do
+        it_behaves_like "a command that requires an active session"
         let(:argv) { %w( projects pull ) }
 
-        it_behaves_like "a command that requires an active session"
-
         context "when there is an active session" do
+          it_behaves_like "a command that fails with an API error message"
           before do
             Piv::Session.start(:token => 'abc123', :id => '123123')
             stub_request(:get, api_url + 'projects')
@@ -352,21 +427,14 @@ describe Piv::Runner do
             end
 
           end
-
-          context "when response status is NOT 200" do
-            it_behaves_like "a command that fails with an API error message"
-          end
         end
       end
 
       describe "checkout" do
+        it_behaves_like "a command that requires an active session"
         let(:argv) { %W( projects checkout #{checkout_arguments}) }
 
-        let(:checkout_arguments) do
-          'default'
-        end
-
-        it_behaves_like "a command that requires an active session"
+        let(:checkout_arguments) { 'default' }
 
         context "when there is a session in progress" do
           before do
@@ -405,7 +473,6 @@ describe Piv::Runner do
               expect { run_command }.to output(/Unknown project: 0000/i).to_stderr
             end
           end
-
         end
       end
 
@@ -490,49 +557,6 @@ describe Piv::Runner do
                 expect(Piv::Session.current.projects.pluck(:name)).to include("My Api", "My UI Project")
               end
 
-              describe "--format FORMAT" do
-                let(:argv) { %W( projects --format #{format_argument}) }
-
-                context "when no format argument is given" do
-                  let(:argv) { %W( projects --format ) }
-
-                  it "notifies the user that this is a required option" do
-                    allow_exit!
-                    expect { run_command }.to assert_option(:format)
-                  end
-                end
-
-                describe "%n" do
-                  let(:format_argument) { "my project:%n" }
-                  it "displays the project names" do
-                    allow_exit!
-                    expect { run_command }.to output(a_string_matching(/my project:My Api(:?\n|.)*my project:My UI Project/)).to_stdout
-                  end
-                end
-
-                describe "%I" do
-                  let(:format_argument) { "my project id:%I" }
-
-                  it "displays the project ids" do
-                    allow_exit!
-                    expect { run_command }.to output(a_string_matching(/my project id:1(:?\n|.)*my project id:2/)).to_stdout
-                  end
-                end
-              end
-
-              describe "--cformat FORMAT" do
-                before do
-                  Piv::Session.current.projects.create(:name => 'first proj')
-                  Piv::Session.current.projects.create(:name => 'second proj', :current => true)
-                end
-
-                let(:argv) { %w( projects --format "not_current:\ %n" --cformat "yes_current:\ %n" ) }
-
-                it "allows special formatting for current project" do
-                  allow_exit!
-                  expect { run_command }.to output(a_string_matching(/not_current: first proj(:?\n|.)*yes_current: second proj/)).to_stdout
-                end
-              end
             end
 
             context "when request status is NOT 200" do
@@ -563,67 +587,6 @@ describe Piv::Runner do
         it "displays the username credential" do
           allow_exit!
           expect { run_command }.to output(a_string_including("gtaveras")).to_stdout
-        end
-
-        describe "--format FORMAT" do
-          let(:argv) { %W( whoami --format #{format_argument}) }
-
-          describe "meta-characters" do
-
-            describe "%u" do
-              let(:format_argument) { "i am %u" }
-
-              it "displays the user's username" do
-                allow_exit!
-                expect { run_command }.to output(a_string_including("i am gtaveras")).to_stdout
-              end
-            end
-
-            describe "%n" do
-              let(:format_argument) { "i am %n" }
-
-              it "displays the user's name" do
-                allow_exit!
-                expect { run_command }.to output(a_string_including("i am George Taveras")).to_stdout
-              end
-            end
-
-            describe "%e" do
-              let(:format_argument) { "i am %e" }
-
-              it "displays the user's email" do
-                allow_exit!
-                expect { run_command }.to output(a_string_including("i am gtaveras@example.com")).to_stdout
-              end
-            end
-
-            describe "%i" do
-              let(:format_argument) { "i am %i" }
-
-              it "displays the user's initials" do
-                allow_exit!
-                expect { run_command }.to output(a_string_including("i am GT")).to_stdout
-              end
-            end
-
-            describe "%c()" do
-              let(:format_argument) { "i am %c(red on_yellow)%i" }
-
-              it "modifies the color of the text" do
-                allow_exit!
-                expect { run_command }.to output(a_string_including("i am \e[31m\e[43mGT")).to_stdout
-              end
-            end
-          end
-
-          context "when no format argument is given" do
-            let(:argv) { %W( whoami --format ) }
-
-            it "notifies the user that this is a required option" do
-              allow_exit!
-              expect { run_command }.to assert_option(:format)
-            end
-          end
         end
       end
     end

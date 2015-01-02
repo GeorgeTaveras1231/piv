@@ -1,19 +1,27 @@
 module Piv
   module Helpers
-    module Stories
+    module Iterations
 
-      PERSISTED_STORY_ATTRIBUTES = %w( id name current_state estimate 
-        story_type )
+      PERSISTED_STORY_ATTRIBUTES = %w( id name current_state estimate
+        story_type description )
 
-      def pull_stories
-        response = client.stories(:project_id => current_project.id)
-        event_handler = EventHandler.new('pull stories')
+      def pull_iterations(params = {})
+        default_params = {
+          :project_id => current_project.id,
+          :scope => :current_backlog
+        }
+
+        response = client.iterations(default_params)
+
+        event_handler = EventHandler.new('pull iterations')
 
         yield event_handler
 
         case response.status
         when 200
-          stories = response.body
+          stories = response.body.flat_map do |iter|
+            iter['stories']
+          end
 
           Story.transaction do
             rel = current_project.stories
@@ -35,7 +43,6 @@ module Piv
           event_handler.trigger :failure, response
         end
       end
-
     end
   end
 end

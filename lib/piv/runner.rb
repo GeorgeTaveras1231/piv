@@ -65,19 +65,8 @@ module Piv
     end
 
     option :format, :type => :string,
-                    :default => '%u',
-                    :required => true,
-                    :desc => <<-DESC.strip_heredoc
-    Format to use when printing current user information.
-      Available meta-characters are:
-        %n => name
-        %u => username
-        %i => initials
-        %e => email
-
-        %c => shell colors with Thor color helpers eg: "%c(bold green on_magenta) I am colorful "
-
-    DESC
+                    :default => '%a( username )',
+                    :required => true
 
     desc 'whoami', 'Print current session information'
     def whoami
