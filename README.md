@@ -1,5 +1,6 @@
 # Piv
 [![Code Climate](https://codeclimate.com/github/GeorgeTaveras1231/piv/badges/gpa.svg)](https://codeclimate.com/github/GeorgeTaveras1231/piv)
+[![Test Coverage](https://codeclimate.com/github/GeorgeTaveras1231/piv/badges/coverage.svg)](https://codeclimate.com/github/GeorgeTaveras1231/piv)
 
 DOCUMENTATION PENDING
 
