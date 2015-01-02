@@ -5,21 +5,8 @@ module Piv
       PERSISTED_STORY_ATTRIBUTES = %w( id name current_state estimate
         story_type description )
 
-      def pull_iterations(params = {})
-        default_params = {
-          :project_id => current_project.id,
-          :scope => :current_backlog
-        }
-
-        response = client.iterations(default_params)
-
-        event_handler = EventHandler.new('pull iterations')
-
-        yield event_handler
-
-        case response.status
-        when 200
-          stories = response.body.flat_map do |iter|
+      def save_stories_from_api_response(response_body)
+          stories = response_body.flat_map do |iter|
             iter['stories']
           end
 
@@ -37,6 +24,23 @@ module Piv
               end
             end
           end
+      end
+
+      def pull_iterations(params = {})
+        default_params = {
+          :project_id => current_project.id,
+          :scope => :current_backlog
+        }
+
+        final_params  = default_params.merge(params)
+        response      = client.iterations(final_params)
+        event_handler = EventHandler.new('pull iterations')
+
+        yield event_handler
+
+        case response.status
+        when 200
+          save_stories_from_api_response(response.body)
 
           event_handler.trigger :success, response
         else

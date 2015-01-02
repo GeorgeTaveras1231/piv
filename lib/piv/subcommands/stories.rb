@@ -75,7 +75,7 @@ DEF
 
       desc 'pull', 'Pull stories from API.'
       def pull
-        Application.for(self, :projects, :stories, :iterations) do
+        Application.for(self, :projects, :iterations) do
           requires_active_session!
           requires_current_project!
 
