@@ -6,4 +6,5 @@ gemspec
 group :test do
   gem 'rspec'
   gem 'webmock'
+  gem "codeclimate-test-reporter", :require => nil
 end
