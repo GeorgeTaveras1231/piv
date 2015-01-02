@@ -5,6 +5,7 @@ require 'faraday'
 require 'faraday_middleware'
 require 'em-http-request'
 require "piv/version"
+require "piv/core_ext/kernel"
 require "piv/helpers/login"
 require "piv/helpers/logout"
 require "piv/helpers/whoami"

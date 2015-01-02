@@ -15,4 +15,4 @@ RSpec.configure do |c|
   end
 end
 
-CodeClimate::TestReporter.start
+CodeClimate::TestReporter.start if ENV['CODECLIMATE_REPO_TOKEN']
