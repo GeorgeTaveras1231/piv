@@ -5,7 +5,7 @@ gemspec
 
 gem 'sqlite3', :platform => :ruby
 
-gem 'activerecord-jdbc-adapter', platform: :jruby
+gem 'activerecord-jdbc-adapter', :platform => :jruby
 
 group :test do
   gem 'rspec'
