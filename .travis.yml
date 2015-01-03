@@ -4,12 +4,10 @@ rvm:
   - "2.1.5"
   - "2.0.0"
   - "1.9.3"
-  - "jruby-18mode"
   - "jruby-19mode"
-  - "rbx-2"
+  - "rbx"
   - "ruby-head"
   - "jruby-head"
-  - "ree"
 
   # uncomment this line if your project needs to run something other than `rake`:
 script: "CODECLIMATE_REPO_TOKEN=c9c0c5597a886dea19d34f091b5f5419282247c577708e0728bfab9710e3ff4e bundle exec rspec spec"
