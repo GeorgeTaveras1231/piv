@@ -25,7 +25,7 @@ module Piv
 
       def down(context={})
         if done?
-          FileUtils.rm_r @path
+          FileUtils.rm_rf @path
         end
       end
 

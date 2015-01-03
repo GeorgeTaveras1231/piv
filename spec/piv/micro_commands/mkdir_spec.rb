@@ -1,8 +1,7 @@
-require 'spec_helper'
-
 describe Piv::MicroCommands::Mkdir do
   let(:command) { described_class.new(dir) }
-  let(:dir) { File.join(__dir__, '..', 'fixtures', 'micro_commands', 'mkdir') }
+  let(:dir) { File.join(fixture_path, 'micro_commands', 'mkdir') }
+
   after do
     if Dir.exist?(dir) || File.exist?(dir)
       FileUtils.rm_r dir

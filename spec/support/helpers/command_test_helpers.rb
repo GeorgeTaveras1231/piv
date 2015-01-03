@@ -27,7 +27,6 @@ module Piv
       end
 
       included do
-        WebMock.disable_net_connect!
 
         let(:current_session) do
           Piv::Session.current
@@ -64,7 +63,14 @@ module Piv
         end
 
         before do
+          WebMock.disable_net_connect!
           allow_any_instance_of(Thor::Shell::Basic).to receive(:stdout) { stdout }
+
+          installer.run :up
+        end
+
+        after do
+          installer.run :down
         end
       end
 

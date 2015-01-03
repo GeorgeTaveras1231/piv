@@ -2,20 +2,18 @@ require 'spec_helper'
 
 describe Piv::Session do
 
-  fixture_path = File.join(__dir__, '..', 'fixtures', 'models')
-  db_path = File.join(fixture_path, 'test_db')
+  spec_fixture_path = File.join(fixture_path, 'models')
+  db_path = File.join(spec_fixture_path, 'test_db')
 
   before(:all) do
-    unless Dir.exist? fixture_path
-      FileUtils.mkdir fixture_path
-    end
+    FileUtils.mkdir_p spec_fixture_path
     ActiveRecord::Migrator.migrations_path = 'db/migrate'
     Piv::MicroCommands::ConnectToDB.new(:adapter => :sqlite3, :database => db_path).run(:up)
   end
 
   after(:all) do
-    if Dir.exist? fixture_path
-      FileUtils.rm_r fixture_path
+    if Dir.exist? spec_fixture_path
+      FileUtils.rm_r spec_fixture_path
     end
   end
 

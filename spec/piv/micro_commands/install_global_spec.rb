@@ -1,8 +1,7 @@
-require 'spec_helper'
-
 describe Piv::MicroCommands::InstallGlobal do
   let(:command) { described_class.new(dir) }
-  let(:dir) { File.join(__dir__, '..', '..', 'fixtures', 'micro_commands', 'install_global') }
+
+  let(:dir) { File.join(fixture_path, 'micro_commands', 'install_global') }
 
   describe 'private#sub_commands' do
     it 'returns the expected commands' do
@@ -48,6 +47,7 @@ describe Piv::MicroCommands::InstallGlobal do
       end
 
       let(:done?) { true }
+
       it 'removes the global_dir' do
         command.down
         expect(Dir.exist? dir).to be false

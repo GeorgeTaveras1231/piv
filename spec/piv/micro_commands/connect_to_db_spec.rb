@@ -29,7 +29,7 @@ describe Piv::MicroCommands::ConnectToDB do
   end
 
   let(:command) { described_class.new(config) }
-  let(:dir) { File.join(TEST_ROOT, 'fixtures', 'micro_commands', 'connect_to_db') }
+  let(:dir) { File.join(fixture_path, 'micro_commands', 'connect_to_db') }
 
   let(:db_path) { File.join(dir, 'testdb.sqlite3') }
   let(:migrations_path) { File.join(dir, 'migrate') }

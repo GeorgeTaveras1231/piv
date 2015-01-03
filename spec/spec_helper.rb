@@ -18,34 +18,37 @@ def connection
   end
 end
 
+def fixture_path
+  @fixture_path ||= File.join(TEST_ROOT, 'fixtures', SecureRandom.hex(10))
+end
+
 def global_dir
-  @global_dir ||= File.join(TEST_ROOT, 'fixtures', "piv_test#{SecureRandom.hex(20)}")
+  @global_dir ||= File.join(fixture_path, 'piv_test')
 end
 
 def api_url
   "https://www.pivotaltracker.com/services/v5/"
 end
 
+def installer
+  @installer ||= Piv::MicroCommands::InstallGlobal.new(global_dir)
+end
 
 RSpec.configure do |c|
-  c.after(:all) do
-    WebMock.allow_net_connect!
-  end
 
   c.before(:all) do
+    FileUtils.mkdir_p fixture_path
+
     Piv::Application.global_dir = global_dir
     Piv::Application.connection = connection
   end
 
-  c.before(:each) do
-    Piv::Application.for(nil).assure_globally_installed
+  c.after(:all) do
+    FileUtils.rm_rf fixture_path
+
+    WebMock.allow_net_connect!
   end
 
-  c.after(:each) do
-    if Dir.exist? global_dir
-      FileUtils.rm_rf global_dir
-    end
-  end
 end
 
 CodeClimate::TestReporter.start if ENV['CODECLIMATE_REPO_TOKEN']
