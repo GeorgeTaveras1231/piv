@@ -3,25 +3,14 @@ module Piv
     include Helpers::Application
 
     def self.for(runner, *helpers, &block)
-      nested_helpers = helpers.last.is_a?(Hash) ? helpers.pop : {}
+      mods = get_helper_modules(helpers)
 
-      nested_mods = nested_helpers.flat_map do |namespace, helper_names|
-        namespace_mod = get_helper_modules([namespace]).first
+      self.new(runner, *helpers).tap do |application|
+        application.assure_globally_installed
 
-        get_helper_modules([helper_names].flatten, namespace_mod) + [namespace_mod]
+        application.extend(*mods)         if mods.any?
+        application.instance_exec(&block) if block_given?
       end
-
-      mods = get_helper_modules(helpers) + nested_mods
-
-      application = self.new(runner, *helpers)
-      application.extend(*mods) if mods.any?
-
-      block ||= Proc.new {}
-
-      application.assure_globally_installed
-      application.instance_exec(&block)
-
-      application
     rescue Client::NetworkError => e
       warn application.set_color(e.message, :red)
       exit(1)
@@ -43,11 +32,19 @@ module Piv
     private
 
     def self.get_helper_modules(names, namespace=Helpers)
-      names.map do |name|
+      names.flat_map do |name_or_key_or_hash, nested_names|
         begin
-          namespace.const_get(name.to_s.camelize)
+          if name_or_key_or_hash.is_a? Hash
+            get_helper_modules(name_or_key_or_hash, namespace)
+          elsif nested_names
+            new_namespace = namespace.const_get(name_or_key_or_hash.to_s.camelize)
+
+            [new_namespace] + get_helper_modules([nested_names].flatten, new_namespace)
+          else
+            namespace.const_get(name_or_key_or_hash.to_s.camelize)
+          end
         rescue NameError
-          raise ArgumentError, "#{name} is not a registered module in #{namespace}"
+          raise ArgumentError, "#{name_or_key_or_hash} is not a registered module in #{namespace}"
         end
       end
     end

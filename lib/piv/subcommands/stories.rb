@@ -11,17 +11,13 @@ module Piv
           requires_active_session!
           requires_current_project!
 
-          format = if predefined_format?(options[:format])
-                     get_format_from_metastring(options[:format])
-                   else
-                     options[:format]
-                   end
+          format = get_format_from_metastring(options[:format]) { options[:format] }
 
-          formatted_stories = current_project.stories.reverse.map do |story|
-            parse_format_model(story, format)
+          current_stories.reverse_each do |story|
+            more do |input|
+              input.write parse_format_model(story, format)
+            end
           end
-
-          more(formatted_stories.join("\n"))
 
           exit $?.exitstatus
         end
@@ -33,7 +29,7 @@ module Piv
           requires_active_session!
           requires_current_project!
 
-          if story = current_project.stories.find_by(:id => story_id)
+          if story = current_stories.find_by(:id => story_id)
             story.current = true
             story.save
 

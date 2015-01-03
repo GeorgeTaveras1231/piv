@@ -24,19 +24,17 @@ describe Piv::Helpers::Stories::PredefinedFormats do
     end
   end
 
-  describe "#predefined_format?" do
-    it "returns true if the format has been defined" do
-      expect(test_obj.predefined_format?('%first%')).to be true
-    end
-
-    it "returns false if the format has not beed defined" do
-      expect(test_obj.predefined_format?('%not_defined%')).to be false
-    end
-  end
-
   describe "#get_format_from_metastring" do
     it "returns the format given a registered format id" do
       expect(test_obj.get_format_from_metastring('%first%')).to eq 'this is a format'
+    end
+
+    it "raises an error of format is not found" do
+      expect { test_obj.get_format_from_metastring('%not_found%') }.to raise_error(KeyError)
+    end
+
+    it "allows for an alternative return value with a codeblock" do
+      expect(test_obj.get_format_from_metastring('%not_found%') { 'f' }).to eq 'f'
     end
   end
 

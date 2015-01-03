@@ -2,7 +2,7 @@ module Piv
   module Helpers
     module Shell
 
-      def more(text, flags=[:R],overwrites={})
+      def more(text = nil, flags=[:R],overwrites={})
         out = overwrites[:out] || STDOUT
         err = overwrites[:err] || STDERR
 
@@ -16,7 +16,8 @@ module Piv
         more_process.io.stderr = err
         more_process.start
 
-        more_process.io.stdin.write text
+        more_process.io.stdin.write(text) if text
+        yield(more_process.io.stdin)      if block_given?
 
         more_process.io.stdin.close
         more_process.wait

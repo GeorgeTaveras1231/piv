@@ -31,12 +31,8 @@ module Piv
           format_key && format_key.to_sym
         end
 
-        def predefined_format?(metastring)
-          PREDEFINED_FORMATS.has_key? format_name_from_metastring(metastring)
-        end
-
-        def get_format_from_metastring(metastring)
-          PREDEFINED_FORMATS.fetch(format_name_from_metastring(metastring))
+        def get_format_from_metastring(metastring, &block)
+          PREDEFINED_FORMATS.fetch(format_name_from_metastring(metastring), &block)
         end
       end
     end
