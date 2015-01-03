@@ -34,8 +34,8 @@ describe Piv::Helpers::Formatter::Parser do
       end
 
       it "centers the attribute" do
-        arguments = "%cA( ' attr1 ' '*-' )"
-        expect(parser.parse(*arguments)).to match(/[*-]{20,} value1 [*-]{20,}/)
+        arguments = "%cA( ' attr1 ' '*-' 80 )"
+        expect(parser.parse(*arguments)).to match(/[*-]{20,} value1 [*-]{20,}.*/)
       end
     end
 

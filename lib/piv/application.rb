@@ -45,7 +45,7 @@ module Piv
     def self.get_helper_modules(names, namespace=Helpers)
       names.map do |name|
         begin
-          namespace.const_get(name.to_s.capitalize)
+          namespace.const_get(name.to_s.camelize)
         rescue NameError
           raise ArgumentError, "#{name} is not a registered module in #{namespace}"
         end

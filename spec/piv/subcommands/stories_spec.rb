@@ -155,6 +155,9 @@ describe Piv::Subcommands::Stories do
             end
 
             context "when status is 200" do
+              before do
+                Piv::Story.destroy_all
+              end
               let(:status) { 200 }
 
               let(:body) do

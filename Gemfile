@@ -10,6 +10,11 @@ platform :jruby do
   gem 'activerecord-jdbcsqlite3-adapter'
 end
 
+group :development do
+  gem 'guard'
+  gem 'guard-rspec', :require => false
+end
+
 group :test do
   gem 'rspec'
   gem 'webmock'

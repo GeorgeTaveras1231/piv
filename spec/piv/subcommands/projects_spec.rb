@@ -2,7 +2,6 @@ describe Piv::Subcommands::Projects do
   include Piv::Specs::CommandTestHelpers
 
   describe 'projects (pull|list|checkout|which)' do
-
     describe "pull" do
       it_behaves_like "a command that requires an active session"
       let(:argv) { %w( pull ) }

@@ -1,3 +1,5 @@
+require 'spec_helper'
+
 describe Piv::Runner do
   include Piv::Specs::CommandTestHelpers
 

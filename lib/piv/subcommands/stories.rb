@@ -3,44 +3,25 @@ module Piv
     class Stories < Thor
       default_command :list
 
-      PRETTY_FORMAT_1 = <<-DEF
-%c( bold red )%cA( ' story_type ' ' - ' )
-%c(bold black on_green) %a(id) %c(magenta on_blue) %a(current_state) %c(clear)[%c(yellow bold) %a(estimate) %c(clear)] %c(cyan)%a(name)
-
-%iP(description 6)
-DEF
-
-      PRETTY_FORMAT_ONELINE = "%c(yellow)%a(id)%c(cyan) %a(name)%c(clear) ( %c(red)%a(current_state ) %c(clear))"
-
-      DEFAULT_FORMAT = <<-DEF
-%c(yellow)story #%a(id)%c(clear)
-%c(bold)title%c(clear):  %a(name)
-%c(bold)type%c(clear): %a(story_type)
-%c(bold)status%c(clear): %a(current_state)
-%c(bold)estimate%c(clear): %a(estimate)
-
-%iP(description 6)
-DEF
-
       option :format, :type => :string,
-                      :default => DEFAULT_FORMAT
+                      :default => '%default%'
       desc 'list', 'List stories'
       def list
-        Application.for(self, :formatter, :projects, :shell) do
+        Application.for(self, :formatter, :projects, :shell, :stories => :predefined_formats) do
           requires_active_session!
           requires_current_project!
 
-          case options[:format]
-          when '%pretty1'
-            options[:format] = PRETTY_FORMAT_1
-          when '%oneline'
-            options[:format] = PRETTY_FORMAT_ONELINE
+          format = if predefined_format?(options[:format])
+                     get_format_from_metastring(options[:format])
+                   else
+                     options[:format]
+                   end
+
+          formatted_stories = current_project.stories.reverse.map do |story|
+            parse_format_model(story, format)
           end
 
-          formatted_stories = current_project.stories.reverse.map(&method(:parse_format_model))
-          text = formatted_stories.join("\n")
-
-          more(text)
+          more(formatted_stories.join("\n"))
 
           exit $?.exitstatus
         end
@@ -48,7 +29,7 @@ DEF
 
       desc 'checkout', 'Start working on story'
       def checkout(story_id)
-        Application.for(self, :projects, :formatter) do
+        Application.for(self, :projects, :formatter, :stories => :predefined_formats) do
           requires_active_session!
           requires_current_project!
 
@@ -58,7 +39,7 @@ DEF
 
             say <<-MSG.strip_heredoc
               Switched to story:
-                #{parse_format_model(story, PRETTY_FORMAT_ONELINE)}
+                #{parse_format_model(story, get_format_from_metastring('%oneline%'))}
               MSG
             exit 0
 

@@ -95,11 +95,10 @@ module Piv
 
           parsed_arguments = parse_arguments_with.to_proc.call(arguments)
 
-          parsed_arguments[1] ||= ' '
-          parsed_arguments[2] ||= @thor_shell.terminal_width
-
-
           attribute, padstr, width = parsed_arguments
+
+          padstr ||= ' '
+          width ||= @thor_shell.terminal_width
 
           attribute_regexp = /#{attribute_values.keys.join('|')}/
 
@@ -109,7 +108,7 @@ module Piv
             attribute_function(m, attribute_values)
           end
 
-          attribute_value.center(width, padstr)
+          attribute_value.center(width.to_i, padstr)
         end
 
         def color_function(arguments, parse_arguments_with = method(:parse_arguments))

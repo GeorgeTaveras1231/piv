@@ -29,17 +29,6 @@ module Piv
       included do
         WebMock.disable_net_connect!
 
-        let(:global_dir) { File.join(__dir__, 'fixtures', 'piv_test') }
-        let(:api_url) { "https://www.pivotaltracker.com/services/v5/" }
-
-        let(:connection) do
-          Faraday.new(api_url) do |conn|
-            conn.request :json
-            conn.response :json
-            conn.adapter Faraday.default_adapter
-          end
-        end
-
         let(:current_session) do
           Piv::Session.current
         end
@@ -66,21 +55,6 @@ module Piv
             silence_stream($stdout, &command_proc)
           end
         end
-
-        before do
-          Piv::Application.global_dir = global_dir
-          Piv::Application.connection = connection
-
-          Piv::Application.for(nil).assure_globally_installed
-        end
-
-        after do
-          if Dir.exist? global_dir
-            FileUtils.rm_r global_dir
-          end
-        end
-
-
       end
 
     end
