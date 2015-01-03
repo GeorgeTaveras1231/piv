@@ -2,6 +2,7 @@ describe Piv::Subcommands::Projects do
   include Piv::Specs::CommandTestHelpers
 
   describe 'projects (pull|list|checkout|which)' do
+
     describe "pull" do
       it_behaves_like "a command that requires an active session"
       let(:argv) { %w( pull ) }
@@ -34,7 +35,7 @@ describe Piv::Subcommands::Projects do
           context 'when projects already exist' do
             before do
               [123, 345].each do |id|
-                current_session.projects.create(:id => id.to_s, :name =>'a proj')
+                current_session.projects.create(:id => id.to_s, :name => 'a proj')
               end
             end
 
@@ -89,7 +90,8 @@ describe Piv::Subcommands::Projects do
 
           it "outputs some info about the projects" do
             allow_exit!
-            expect { run_command }.to output(/Switched to project:.*\n.*my proj/i).to_stdout
+            expect(stdout).to receive(:print).with(a_string_matching(/Switched to project:.*\n.*my proj/i))
+            run_command
           end
         end
 
@@ -136,7 +138,9 @@ describe Piv::Subcommands::Projects do
 
           it "displays the available projects" do
             allow_exit!
-            expect { run_command }.to output(a_string_matching(/my lonely project/)).to_stdout
+            expect(stdout).to receive(:print).with(a_string_including("my lonely project"))
+            run_command
+#             expect { run_command }.to output(a_string_matching(/my lonely project/)).to_stdout
           end
 
           it "exits with a status of 0" do
@@ -176,9 +180,13 @@ describe Piv::Subcommands::Projects do
               ]
             end
 
+
             it "displays the user's projects" do
               allow_exit!
-              expect { run_command }.to output(a_string_matching(/1: My Api(:?\n|.)*2: My UI Project/)).to_stdout
+              expect(stdout).to receive(:print).with(
+                a_string_matching(/1: My Api|2: My UI Project/)).exactly(2).times
+              run_command
+#               expect { run_command }.to output(a_string_matching(/1: My Api(:?\n|.)*2: My UI Project/)).to_stdout
             end
 
             it "exits with a code of 0" do

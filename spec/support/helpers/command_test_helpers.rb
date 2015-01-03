@@ -55,6 +55,17 @@ module Piv
             silence_stream($stdout, &command_proc)
           end
         end
+
+        let(:stdout) do
+          double(:stdout,
+            :tty? => false,
+            :flush => nil,
+            :print => nil)
+        end
+
+        before do
+          allow_any_instance_of(Thor::Shell::Basic).to receive(:stdout) { stdout }
+        end
       end
 
     end

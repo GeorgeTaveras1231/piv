@@ -20,7 +20,8 @@ describe Piv::Runner do
 
         it "displays the username credential" do
           allow_exit!
-          expect { run_command }.to output(a_string_including("gtaveras")).to_stdout
+          expect(stdout).to receive(:print).with(a_string_including("gtaveras"))
+          run_command
         end
       end
     end
@@ -153,7 +154,8 @@ describe Piv::Runner do
 
               it "prints a welcoming message" do
                 allow_exit!
-                expect { run_command }.to output(/You have been authenticated./).to_stdout
+                expect(stdout).to receive(:print).with(a_string_including("You have been authenticated."))
+                run_command
               end
 
               context "and a session with the received token already exists" do

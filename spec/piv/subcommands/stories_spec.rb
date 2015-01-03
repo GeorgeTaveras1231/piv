@@ -2,7 +2,6 @@ describe Piv::Subcommands::Stories do
   include Piv::Specs::CommandTestHelpers
 
   describe 'stories (pull|list|checkout)' do
-
     describe "checkout" do
       let(:argv) do
         %W( checkout #{checkout_argument} )
@@ -71,27 +70,17 @@ describe Piv::Subcommands::Stories do
             end
 
             let(:pattern) do
-              /(:?.*story#\d+.*)*/
+              /.*story#\d+.*/
             end
 
-            let(:capture) do
-              double(:capture, :called => nil)
-            end
-
-            let(:shell_mod_stub) do
-              mod = Module.new
-              mod.module_exec(capture) do |_cap|
-                define_method :more do |*args|
-                  _cap.called(*args)
-                end
-              end
-              mod
+            let(:stdin) do
+              double(:stdin)
             end
 
             it "outputs a list of the stories" do
-              stub_const('Piv::Helpers::Shell', shell_mod_stub)
+              allow_any_instance_of(Piv::Helpers::Shell).to receive(:more).and_yield(stdin)
               allow_exit!
-              expect(capture).to receive(:called).with(a_string_matching(pattern))
+              expect(stdin).to receive(:write).with(match(pattern)).exactly(30).times
               run_command
             end
           end
