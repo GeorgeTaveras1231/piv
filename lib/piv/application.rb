@@ -9,11 +9,14 @@ module Piv
         application.assure_globally_installed
 
         application.extend(*mods)         if mods.any?
-        application.instance_exec(&block) if block_given?
+
+        begin
+          application.instance_exec(&block) if block_given?
+        rescue Client::NetworkError => e
+          warn application.set_color(e.message, :red)
+          exit(1)
+        end
       end
-    rescue Client::NetworkError => e
-      warn application.set_color(e.message, :red)
-      exit(1)
     end
 
     def initialize(runner, *helpers)
