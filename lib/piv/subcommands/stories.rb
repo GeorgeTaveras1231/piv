@@ -7,18 +7,27 @@ module Piv
                       :default => '%default%'
       desc 'list', 'List stories'
       def list
-        Application.for(self, :formatter, :projects, :shell, :stories => :predefined_formats) do
+        Application.for(self, :formatter, :shell, :projects, :iterations, :stories => :predefined_formats) do
           requires_active_session!
           requires_current_project!
 
-          format = get_format_from_metastring(options[:format]) { options[:format] }
+          unless current_stories.any?
+            pull_iterations do |event_handler|
 
-          current_stories.reverse_each do |story|
-            more do |input|
-              input.write parse_format_model(story, format)
+              event_handler.on :failure do |response|
+                warn set_color(response.body['error'], :red)
+                exit 1
+              end
             end
           end
 
+          format = get_format_from_metastring(options[:format]) { options[:format] }
+
+          formatted_stories = current_stories.reverse.map do |story|
+            parse_format_model(story, format)
+          end
+
+          more(formatted_stories.join("\n"))
           exit $?.exitstatus
         end
       end

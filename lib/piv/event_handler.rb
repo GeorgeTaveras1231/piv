@@ -15,8 +15,11 @@ module Piv
     end
 
     def trigger(event, *args, &block)
-      raise ArgumentError, "#{event} is not a registered event for #{self.inspect}" unless @registry.has_key?(event)
-      @registry[event].each { |callback| callback.call(*args, &block) }
+      if @registry.has_key? event
+        @registry[event].each do |callback|
+          callback.call(*args, &block)
+        end
+      end
     end
 
     def inspect

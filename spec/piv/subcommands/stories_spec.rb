@@ -78,14 +78,24 @@ describe Piv::Subcommands::Stories do
             end
 
             it "outputs a list of the stories" do
-              allow_any_instance_of(Piv::Helpers::Shell).to receive(:more).and_yield(stdin)
+              allow_any_instance_of(Piv::Helpers::Shell).to receive(:more)
               allow_exit!
-              expect(stdin).to receive(:write).with(match(pattern)).exactly(30).times
+              expect_any_instance_of(Piv::Helpers::Shell).to receive(:more).with(match(pattern))
               run_command
             end
           end
 
-          context "and there are no stories"
+          context "and there are no stories" do
+            before do
+              Piv::Story.destroy_all
+            end
+
+            it "pulls the stories from the api" do
+              allow_exit!
+              expect_any_instance_of(Piv::Helpers::Iterations).to receive(:pull_iterations)
+              run_command
+            end
+          end
         end
       end
 
